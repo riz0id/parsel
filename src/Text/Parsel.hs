@@ -21,6 +21,9 @@ module Text.Parsel
 
     -- * TODO
     location,
+    position,
+    line,
+    column,
 
     -- * Characters
     char,
@@ -44,9 +47,10 @@ import Data.Functor (($>))
 --------------------------------------------------------------------------------
 
 import Data.SrcLoc (SrcLoc)
-import Text.Parsel.Core (Parse (Alt, Chr, Loc, Str))
+import Text.Parsel.Core (Parse (Alt, Chr, Loc, Str, Map))
 import Text.Parsel.Eval (evalST, evalTerm)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
+import qualified Data.SrcLoc as SrcLoc
 
 -- TODO ------------------------------------------------------------------------
 
@@ -64,6 +68,27 @@ parse input p = evalST input (evalTerm p)
 location :: Parse SrcLoc
 location = Loc
 {-# INLINE CONLIKE location #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+position :: Parse Int 
+position = Map SrcLoc.line Loc
+{-# INLINE CONLIKE position #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+line :: Parse Int 
+line = Map SrcLoc.line Loc
+{-# INLINE CONLIKE line #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+column :: Parse Int 
+column = Map SrcLoc.line Loc
+{-# INLINE CONLIKE column #-}
 
 -- TODO ------------------------------------------------------------------------
 
