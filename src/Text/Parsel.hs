@@ -39,6 +39,7 @@ module Text.Parsel
 
     -- * TODO
     between,
+    surround,
     parentheses,
     brackets,
     braces,
@@ -162,9 +163,16 @@ string = Str
 -- | TODO
 --
 -- @since 1.0.0
-between :: Parse a -> Parse b -> Parse c -> Parse c
+between :: Parse l -> Parse r -> Parse c -> Parse c
 between tml tmr tm = tml *> tm <* tmr
 {-# INLINE CONLIKE between #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+surround :: Parse x -> Parse a -> Parse a
+surround tm = between tm tm
+{-# INLINE CONLIKE surround #-}
 
 -- | TODO
 --
