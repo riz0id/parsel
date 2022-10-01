@@ -23,7 +23,6 @@ module Text.Parsel.Eval
     -- * Operations
     single,
     advance,
-    lookahead,
     alt,
 
     -- * Monad
@@ -179,19 +178,8 @@ peek = do
 -- | TODO
 --
 -- @since 1.0.0
-lookahead :: Eval s Char
-lookahead = do
-  src <- asks ctx'source
-  pos <- gets (posn . store'location)
-  if 1 + pos >= length src
-    then raiseEoF
-    else pure (src List.!! (1 + pos))
-
--- | TODO
---
--- @since 1.0.0
 alt :: Eval s a -> Eval s a -> Eval s a
 alt (Eval f) (Eval g) =
   Eval \ctx env0 st0# -> case f ctx env0 st0# of
-    (# st1#, env1, (# _ | #) #) -> g ctx env1 st1#
+    (# st1#, _, (# _ | #) #) -> g ctx env0 st1#
     (# st1#, env1, (# | x #) #) -> (# st1#, env1, (# | x #) #)
