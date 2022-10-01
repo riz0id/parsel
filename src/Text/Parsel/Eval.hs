@@ -1,15 +1,16 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Text.Parsel.Eval
   ( -- * Running Eval
     evalIO,
+    evalST,
     runEvalIO,
 
     -- * Evaluating Terms
@@ -44,27 +45,38 @@ import Data.SrcLoc qualified as SrcLoc
 
 --------------------------------------------------------------------------------
 
+import Text.Parsel.Core
+  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Str, Val),
+  )
 import Text.Parsel.Eval.Context
   ( EvalCtx (EvalCtx, ctx'source),
   )
-import Text.Parsel.Eval.Core (Eval (Eval, unEval), EvalIO, runEvalIO)
+import Text.Parsel.Eval.Core (Eval (Eval, unEval), EvalIO, runEvalIO, runEvalST)
 import Text.Parsel.Eval.Error
-  ( EvalExn (EvalExn),
-    EvalExnInfo (ExnEndOfFile, ExnChrMismatch),
+  ( ParseError (ParseError),
+    ParseErrorInfo (ExnChrMismatch, ExnEndOfFile),
   )
 import Text.Parsel.Eval.Store
   ( EvalStore (EvalStore, store'location),
   )
-import Text.Parsel.Core
-  ( Parse (Alt, Bot, Chr, Val, Fix, Map, Seq, Str),
-  )
+import Control.Monad.ST (runST)
 
 -- Running Eval ----------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-evalIO :: String -> EvalIO a -> IO (Either EvalExn a)
+evalST :: String -> (forall s. Eval s a) -> Either ParseError a
+evalST src m = runST do
+  let ctx = EvalCtx src
+  let env = EvalStore SrcLoc.empty
+  result <- runEvalST ctx env m
+  pure (snd result)
+
+-- | TODO
+--
+-- @since 1.0.0
+evalIO :: String -> EvalIO a -> IO (Either ParseError a)
 evalIO src m =
   let ctx = EvalCtx src
       env = EvalStore SrcLoc.empty
@@ -94,13 +106,13 @@ evalTerm (Seq x y) = do
 evalTerm (Alt x y) =
   alt (evalTerm x) (evalTerm y)
 evalTerm (Fix fix) = do
-  let fix' :: Parse a -> Eval s (Parse a) 
-      fix' tm = do 
-        result <- evalTerm tm 
-        case result of 
+  let fix' :: Parse a -> Eval s (Parse a)
+      fix' tm = do
+        result <- evalTerm tm
+        case result of
           Nothing -> fix' (fix Bot)
           Just tm' -> fix' (fix (pure tm'))
-   in evalTerm =<< fix' Bot 
+   in evalTerm =<< fix' Bot
 
 -- Errors ----------------------------------------------------------------------
 
@@ -111,7 +123,7 @@ raiseEoF :: Eval s a
 raiseEoF = do
   src <- asks ctx'source
   loc <- gets store'location
-  throwError (EvalExn ExnEndOfFile loc loc src)
+  throwError (ParseError ExnEndOfFile loc loc src)
 
 -- | TODO
 --
@@ -122,7 +134,7 @@ raiseChrMismatch chr = do
   begin <- gets store'location
   let end :: SrcLoc
       end = SrcLoc.feed begin chr
-   in throwError (EvalExn (ExnChrMismatch chr) begin end src)
+   in throwError (ParseError (ExnChrMismatch chr) begin end src)
 
 -- Operations ------------------------------------------------------------------
 

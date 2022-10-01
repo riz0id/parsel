@@ -9,13 +9,15 @@
 
 module Text.Parsel.Eval.Core
   ( -- * Evaluation Monad
-    runEvalIO,
     EvalIO,
+    runEvalST,
     Eval (Eval, unEval),
+    runEvalIO,
   )
 where
 
 import Control.Monad.Except (MonadError, catchError, throwError)
+import Control.Monad.ST.Strict (ST)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, primitive)
 import Control.Monad.Reader (MonadReader, ask, liftIO, local)
@@ -27,7 +29,7 @@ import GHC.Exts (State#)
 import GHC.IO (IO (IO))
 
 import Text.Parsel.Eval.Context (EvalCtx)
-import Text.Parsel.Eval.Error (EvalExn)
+import Text.Parsel.Eval.Error (ParseError)
 import Text.Parsel.Eval.Store (EvalStore)
 
 --------------------------------------------------------------------------------
@@ -37,11 +39,25 @@ import Text.Parsel.Eval.Store (EvalStore)
 -- | TODO
 --
 -- @since 1.0.0
+runEvalST ::
+  EvalCtx ->
+  EvalStore ->
+  Eval s a ->
+  ST s (EvalStore, Either ParseError a)
+runEvalST ctx env0 (Eval k) =
+  primitive \rw0# -> case k ctx env0 rw0# of
+    (# rw1#, env1, (# e | #) #) -> (# rw1#, (env1, Left e) #)
+    (# rw1#, env1, (# | x #) #) -> (# rw1#, (env1, Right x) #)
+{-# INLINE runEvalST #-}
+
+-- | TODO
+--
+-- @since 1.0.0
 runEvalIO ::
   EvalCtx ->
   EvalStore ->
   EvalIO a ->
-  IO (EvalStore, Either EvalExn a)
+  IO (EvalStore, Either ParseError a)
 runEvalIO ctx env0 (Eval k) =
   primitive \rw0# -> case k ctx env0 rw0# of
     (# rw1#, env1, (# e | #) #) -> (# rw1#, (env1, Left e) #)
@@ -62,7 +78,7 @@ newtype Eval s a = Eval
       EvalCtx ->
       EvalStore ->
       State# s ->
-      (# State# s, EvalStore, (# EvalExn| a #) #)
+      (# State# s, EvalStore, (# ParseError| a #) #)
   }
 
 -- | @since 1.0.0
@@ -111,7 +127,7 @@ instance MonadIO (Eval RealWorld) where
   {-# INLINE liftIO #-}
 
 -- | @since 1.0.0
-instance MonadError EvalExn (Eval s) where
+instance MonadError ParseError (Eval s) where
   throwError e = Eval \_ env st# -> (# st#, env, (# e | #) #)
   {-# INLINE throwError #-}
 

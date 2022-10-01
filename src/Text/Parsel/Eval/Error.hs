@@ -1,9 +1,9 @@
 module Text.Parsel.Eval.Error
   ( -- * Evaluation Exceptions
-    EvalExn (EvalExn, exn'kind, exn'begin, exn'end, exn'source),
+    ParseError (ParseError, exn'kind, exn'begin, exn'end, exn'source),
 
     -- * Exception Info 
-    EvalExnInfo (ExnEndOfFile, ExnChrMismatch, ExnStrMismatch),
+    ParseErrorInfo (ExnEndOfFile, ExnChrMismatch, ExnStrMismatch),
   )
 where
 
@@ -16,8 +16,8 @@ import Data.SrcLoc (SrcLoc)
 -- | TODO 
 --
 -- @since 1.0.0
-data EvalExn = EvalExn
-  { exn'kind :: EvalExnInfo
+data ParseError = ParseError
+  { exn'kind :: ParseErrorInfo
   , exn'begin :: {-# UNPACK #-} !SrcLoc
   , exn'end :: {-# UNPACK #-} !SrcLoc
   , exn'source :: String
@@ -34,7 +34,7 @@ data EvalExn = EvalExn
 -- | TODO 
 --
 -- @since 1.0.0
-data EvalExnInfo
+data ParseErrorInfo
   = ExnEndOfFile
   | ExnChrMismatch {-# UNPACK #-} !Char
   | ExnStrMismatch String
