@@ -75,7 +75,7 @@ evalIO src m =
 -- | TODO
 --
 -- @since 1.0.0
-evalTerm :: forall a. Parse a -> EvalIO (Maybe a)
+evalTerm :: forall a s. Parse a -> Eval s (Maybe a)
 evalTerm Bot = pure Nothing
 evalTerm (Val val) = pure (Just val)
 evalTerm (Chr chr) =
@@ -94,7 +94,7 @@ evalTerm (Seq x y) = do
 evalTerm (Alt x y) =
   alt (evalTerm x) (evalTerm y)
 evalTerm (Fix fix) = do
-  let fix' :: Parse a -> EvalIO (Parse a) 
+  let fix' :: Parse a -> Eval s (Parse a) 
       fix' tm = do 
         result <- evalTerm tm 
         case result of 

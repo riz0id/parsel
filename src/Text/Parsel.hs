@@ -2,8 +2,10 @@
 {-# LANGUAGE BlockArguments #-}
 
 module Text.Parsel
-  ( Parse,
-    between,
+  ( -- * TODO 
+    Parse,
+
+    -- * Characters 
     char,
     lower,
     upper,
@@ -11,16 +13,16 @@ module Text.Parsel
     digit,
     alphaNum,
     whitespace,
+
+    -- * Strings
     string,
-    star,
-    star1,
+
+    -- * Choice
+    between,
   )
 where
 
-import Control.Applicative (liftA2, (<|>))
-
 import Data.Functor (($>))
-import Data.List.NonEmpty (NonEmpty ((:|)))
 
 --------------------------------------------------------------------------------
 
@@ -89,17 +91,3 @@ whitespace = foldr (Alt . Chr) (Chr ' ') "\t\r\n" $> ()
 string :: String -> Parse String
 string = Str
 {-# INLINE CONLIKE string #-}
-
--- | TODO
---
--- @since 1.0.0
-star :: Parse a -> Parse [a]
-star tm = liftA2 (:) tm (star tm) <|> pure []
-{-# INLINE CONLIKE star #-}
-
--- | TODO
---
--- @since 1.0.0
-star1 :: Parse a -> Parse (NonEmpty a)
-star1 tm = liftA2 (:|) tm (star tm)
-{-# INLINE CONLIKE star1 #-}

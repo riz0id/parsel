@@ -8,7 +8,7 @@ module Text.Parsel.Core
   )
 where
 
-import Control.Applicative (liftA2, Alternative, empty, (<|>))
+import Control.Applicative (liftA2, many, some, Alternative, empty, (<|>))
 
 import Data.Kind (Type)
 
@@ -53,3 +53,9 @@ instance Alternative Parse where
 
   (<|>) = Alt
   {-# INLINE CONLIKE (<|>) #-}
+
+  many x = liftA2 (:) x (many x) <|> pure [] 
+  {-# INLINE CONLIKE many #-}
+
+  some x = liftA2 (:) x (many x)
+  {-# INLINE CONLIKE some #-}
