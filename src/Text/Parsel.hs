@@ -2,7 +2,8 @@
 {-# LANGUAGE BlockArguments #-}
 
 module Text.Parsel
-  ( between,
+  ( Parse,
+    between,
     char,
     lower,
     upper,
