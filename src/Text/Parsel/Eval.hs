@@ -106,11 +106,7 @@ evalTerm (Seq x y) = do
 evalTerm (Alt x y) = do
   alt (evalTerm x) (evalTerm y)
 evalTerm (Fix fix) = do
-  let fix' :: Parse a -> Eval s (Parse a)
-      fix' tm = do
-        result <- evalTerm tm
-        fix' (fix (pure result))
-   in evalTerm =<< fix' Bot
+  evalTerm $ fix (Fix fix)
 
 -- Errors ----------------------------------------------------------------------
 

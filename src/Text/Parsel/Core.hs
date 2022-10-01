@@ -56,7 +56,7 @@ instance Alternative Parse where
   (<|>) = Alt
   {-# INLINE CONLIKE (<|>) #-}
 
-  many x = liftA2 (:) x (many x) <|> pure [] 
+  many x = Fix \xs -> liftA2 (:) x xs <|> pure []
   {-# INLINE CONLIKE many #-}
 
   some x = liftA2 (:) x (many x)
