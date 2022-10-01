@@ -36,21 +36,25 @@ module Text.Parsel
 
     -- * Strings
     string,
+    between,
 
     -- * Choice
-    between,
+    choice,
   )
 where
 
+import Control.Applicative ((<|>))
+
 import Data.Functor (($>))
+import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.SrcLoc (SrcLoc)
+import Data.SrcLoc qualified as SrcLoc
 
 --------------------------------------------------------------------------------
 
-import Data.SrcLoc (SrcLoc)
-import Text.Parsel.Core (Parse (Alt, Chr, Loc, Str, Map))
+import Text.Parsel.Core (Parse (Alt, Chr, Loc, Map, Str))
 import Text.Parsel.Eval (evalST, evalTerm)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
-import qualified Data.SrcLoc as SrcLoc
 
 -- TODO ------------------------------------------------------------------------
 
@@ -72,21 +76,21 @@ location = Loc
 -- | TODO
 --
 -- @since 1.0.0
-position :: Parse Int 
+position :: Parse Int
 position = Map SrcLoc.line Loc
 {-# INLINE CONLIKE position #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-line :: Parse Int 
+line :: Parse Int
 line = Map SrcLoc.line Loc
 {-# INLINE CONLIKE line #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-column :: Parse Int 
+column :: Parse Int
 column = Map SrcLoc.line Loc
 {-# INLINE CONLIKE column #-}
 
@@ -153,3 +157,12 @@ whitespace = foldr (Alt . Chr) (Chr ' ') "\t\r\n" $> ()
 string :: String -> Parse String
 string = Str
 {-# INLINE CONLIKE string #-}
+
+-- TODO ------------------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+choice :: NonEmpty (Parse a) -> Parse a
+choice (tm :| tms) = foldr (<|>) tm tms
+{-# INLINE CONLIKE choice #-}
