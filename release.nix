@@ -4,4 +4,4 @@ let
   pkgs = import ./default.nix { 
     inherit ghc; 
   };
-in pkgs.parsel-parse
+in pkgs.parsel

@@ -1,6 +1,6 @@
 cabal-version: 2.4
 
-name:        parsel-parse
+name:        parsel
 category:    Data
 version:     0.0.0
 synopsis:    TODO 
@@ -9,7 +9,7 @@ description: TODO
 author:       jacob leach
 maintainer:   jacobleach@protonmail.com
 copyright:    2022, Jacob Leach
-homepage:     https://github.com/riz0id/parsel-parse
+homepage:     https://github.com/riz0id/parsel
 license:      ISC
 license-file: LICENSE
 build-type:   Simple
@@ -24,7 +24,7 @@ tested-with:
 
 source-repository head
   type:     git
-  location: https://github.com/riz0id/parsel-parse
+  location: https://github.com/riz0id/parsel
 
 flag llvm
   Description: Compile using the LLVM backend.
@@ -122,7 +122,7 @@ test-suite test
 
   build-depends:
     , hedgehog
-    , parsel-parse
+    , parsel
     , tasty
     , tasty-hedgehog 
 

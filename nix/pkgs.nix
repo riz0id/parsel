@@ -5,7 +5,7 @@ let
 in import nixpkgs {
   config.packageOverrides = pkgs: 
     pkgs.lib.composeManyExtensions [  
-      (import extensions/parsel-parse.nix {
+      (import extensions/parsel.nix {
         inherit ghc;
       })
       (import extensions/prim-compat.nix {
