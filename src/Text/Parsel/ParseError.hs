@@ -1,9 +1,14 @@
-module Text.Parsel.Eval.Error
+module Text.Parsel.ParseError
   ( -- * Evaluation Exceptions
     ParseError (ParseError, exn'kind, exn'begin, exn'end, exn'source),
 
-    -- * Exception Info 
-    ParseErrorInfo (ExnEndOfFile, ExnChrMismatch, ExnStrMismatch),
+    -- * Exception Info
+    ParseErrorInfo
+      ( ExnEndOfFile,
+        ExnEvalBottom,
+        ExnChrMismatch,
+        ExnStrMismatch
+      ),
   )
 where
 
@@ -13,7 +18,7 @@ import Data.SrcLoc (SrcLoc)
 
 -- Evaluation Exceptions -------------------------------------------------------
 
--- | TODO 
+-- | TODO
 --
 -- @since 1.0.0
 data ParseError = ParseError
@@ -24,18 +29,18 @@ data ParseError = ParseError
   }
   deriving (Eq, Ord, Show)
 
--- | TODO 
+-- | TODO
 --
 -- @since 1.0.0
 
-
 -- Exception Info --------------------------------------------------------------
 
--- | TODO 
+-- | TODO
 --
 -- @since 1.0.0
 data ParseErrorInfo
   = ExnEndOfFile
+  | ExnEvalBottom
   | ExnChrMismatch {-# UNPACK #-} !Char
   | ExnStrMismatch String
   deriving (Eq, Ord, Show)

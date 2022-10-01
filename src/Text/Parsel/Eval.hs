@@ -31,10 +31,9 @@ module Text.Parsel.Eval
   )
 where
 
-import Control.Applicative (liftA2)
-
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader (asks)
+import Control.Monad.ST (runST)
 import Control.Monad.State (gets, modify')
 
 import Data.Foldable (traverse_)
@@ -52,14 +51,13 @@ import Text.Parsel.Eval.Context
   ( EvalCtx (EvalCtx, ctx'source),
   )
 import Text.Parsel.Eval.Core (Eval (Eval, unEval), EvalIO, runEvalIO, runEvalST)
-import Text.Parsel.Eval.Error
-  ( ParseError (ParseError),
-    ParseErrorInfo (ExnChrMismatch, ExnEndOfFile),
-  )
 import Text.Parsel.Eval.Store
   ( EvalStore (EvalStore, store'location),
   )
-import Control.Monad.ST (runST)
+import Text.Parsel.ParseError
+  ( ParseError (ParseError),
+    ParseErrorInfo (ExnChrMismatch, ExnEndOfFile, ExnEvalBottom),
+  )
 
 -- Running Eval ----------------------------------------------------------------
 
@@ -87,31 +85,29 @@ evalIO src m =
 -- | TODO
 --
 -- @since 1.0.0
-evalTerm :: forall a s. Parse a -> Eval s (Maybe a)
-evalTerm Bot = pure Nothing
-evalTerm (Val val) = pure (Just val)
+evalTerm :: forall a s. Parse a -> Eval s a
+evalTerm Bot = do 
+  raiseBot
+evalTerm (Val val) = 
+  pure val
 evalTerm (Chr chr) =
-  single chr $> Just chr
+  single chr $> chr
 evalTerm (Str str) =
-  traverse_ single str $> Just str
+  traverse_ single str $> str
 evalTerm (Map f x) = do
   result <- evalTerm x
-  case result of
-    Nothing -> pure Nothing
-    Just rx -> pure (Just (f rx))
+  pure (f result)
 evalTerm (Seq x y) = do
   rx <- evalTerm x
   ry <- evalTerm y
-  pure (liftA2 (,) rx ry)
+  pure (rx, ry)
 evalTerm (Alt x y) =
   alt (evalTerm x) (evalTerm y)
 evalTerm (Fix fix) = do
   let fix' :: Parse a -> Eval s (Parse a)
       fix' tm = do
         result <- evalTerm tm
-        case result of
-          Nothing -> fix' (fix Bot)
-          Just tm' -> fix' (fix (pure tm'))
+        fix' (fix (pure result))
    in evalTerm =<< fix' Bot
 
 -- Errors ----------------------------------------------------------------------
@@ -124,6 +120,15 @@ raiseEoF = do
   src <- asks ctx'source
   loc <- gets store'location
   throwError (ParseError ExnEndOfFile loc loc src)
+
+-- | TODO
+--
+-- @since 1.0.0
+raiseBot :: Eval s a
+raiseBot = do
+  src <- asks ctx'source
+  loc <- gets store'location
+  throwError (ParseError ExnEvalBottom loc loc src)
 
 -- | TODO
 --

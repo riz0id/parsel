@@ -1,11 +1,11 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE BangPatterns #-}
 
 module Text.Parsel.Eval.Core
   ( -- * Evaluation Monad
@@ -17,10 +17,10 @@ module Text.Parsel.Eval.Core
 where
 
 import Control.Monad.Except (MonadError, catchError, throwError)
-import Control.Monad.ST.Strict (ST)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, primitive)
 import Control.Monad.Reader (MonadReader, ask, liftIO, local)
+import Control.Monad.ST.Strict (ST)
 import Control.Monad.State (MonadState, get, put, state)
 
 import Data.Kind (Type)
@@ -29,8 +29,8 @@ import GHC.Exts (State#)
 import GHC.IO (IO (IO))
 
 import Text.Parsel.Eval.Context (EvalCtx)
-import Text.Parsel.Eval.Error (ParseError)
 import Text.Parsel.Eval.Store (EvalStore)
+import Text.Parsel.ParseError (ParseError)
 
 --------------------------------------------------------------------------------
 

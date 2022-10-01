@@ -102,8 +102,8 @@ library
     Text.Parsel.Eval
     Text.Parsel.Eval.Context
     Text.Parsel.Eval.Core
-    Text.Parsel.Eval.Error
     Text.Parsel.Eval.Store
+    Text.Parsel.ParseError
 
 test-suite test
   import:         common

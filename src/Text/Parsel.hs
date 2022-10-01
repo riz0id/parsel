@@ -2,13 +2,24 @@
 {-# LANGUAGE BlockArguments #-}
 
 module Text.Parsel
-  ( -- * TODO 
+  ( -- * TODO
     Parse,
+
+    -- ** Parse Errors
+    ParseError (ParseError, exn'kind, exn'begin, exn'end, exn'source),
+
+    -- ** Parse Error Info
+    ParseErrorInfo
+      ( ExnEndOfFile,
+        ExnEvalBottom,
+        ExnChrMismatch,
+        ExnStrMismatch
+      ),
 
     -- * TODO
     parse,
 
-    -- * Characters 
+    -- * Characters
     char,
     lower,
     upper,
@@ -30,15 +41,15 @@ import Data.Functor (($>))
 --------------------------------------------------------------------------------
 
 import Text.Parsel.Core (Parse (Alt, Chr, Str))
-import Text.Parsel.Eval.Error (ParseError)
 import Text.Parsel.Eval (evalST, evalTerm)
+import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 
 -- TODO ------------------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-parse :: String -> Parse a -> Either ParseError (Maybe a)
+parse :: String -> Parse a -> Either ParseError a
 parse input p = evalST input (evalTerm p)
 
 --------------------------------------------------------------------------------
