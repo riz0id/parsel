@@ -44,7 +44,7 @@ import Data.SrcLoc qualified as SrcLoc
 --------------------------------------------------------------------------------
 
 import Text.Parsel.Core
-  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Str, Val, Loc),
+  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Val, Loc),
   )
 import Text.Parsel.Eval.Context
   ( EvalCtx (EvalCtx, ctx'source),
@@ -93,8 +93,8 @@ evalTerm (Val val) = do
   pure val
 evalTerm (Chr chr) = do
   single chr $> chr
-evalTerm (Str str) = do
-  traverse_ single str $> str
+-- evalTerm (Str str) = do
+--   traverse_ single str $> str
 evalTerm (Map f x) = do
   result <- evalTerm x
   pure (f result)

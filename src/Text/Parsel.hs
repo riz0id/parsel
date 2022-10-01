@@ -50,7 +50,7 @@ module Text.Parsel
   )
 where
 
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), liftA2)
 
 import Data.Functor (($>))
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -59,7 +59,7 @@ import Data.SrcLoc qualified as SrcLoc
 
 --------------------------------------------------------------------------------
 
-import Text.Parsel.Core (Parse (Alt, Chr, Loc, Map, Str))
+import Text.Parsel.Core (Parse (Alt, Chr, Loc, Map))
 import Text.Parsel.Eval (evalST, evalTerm)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 
@@ -155,7 +155,7 @@ whitespace = foldr (Alt . Chr) (Chr ' ') "\t\r\n" $> ()
 --
 -- @since 1.0.0
 string :: String -> Parse String
-string = Str
+string = foldr (liftA2 (:) . Chr) (pure "")
 {-# INLINE CONLIKE string #-}
 
 -- TODO ------------------------------------------------------------------------

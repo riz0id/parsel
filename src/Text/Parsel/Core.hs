@@ -4,7 +4,7 @@
 
 module Text.Parsel.Core
   ( -- * Terms
-    Parse (Bot, Loc, Val, Chr, Str, Map, Seq, Alt, Fix),
+    Parse (Bot, Loc, Val, Chr, Map, Seq, Alt, Fix),
   )
 where
 
@@ -23,7 +23,7 @@ data Parse (a :: Type) :: Type where
   Loc :: Parse SrcLoc
   Val :: a -> Parse a
   Chr :: {-# UNPACK #-} !Char -> Parse Char
-  Str :: String -> Parse String
+  -- Str :: String -> Parse String
   Map :: (a -> b) -> Parse a -> Parse b
   Seq :: Parse a -> Parse b -> Parse (a, b)
   Alt :: Parse a -> Parse a -> Parse a
