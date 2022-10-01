@@ -45,7 +45,7 @@ import Data.SrcLoc qualified as SrcLoc
 --------------------------------------------------------------------------------
 
 import Text.Parsel.Core
-  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Str, Val),
+  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Str, Val, Loc),
   )
 import Text.Parsel.Eval.Context
   ( EvalCtx (EvalCtx, ctx'source),
@@ -88,11 +88,13 @@ evalIO src m =
 evalTerm :: forall a s. Parse a -> Eval s a
 evalTerm Bot = do 
   raiseBot
-evalTerm (Val val) = 
+evalTerm Loc = do
+  gets store'location
+evalTerm (Val val) = do
   pure val
-evalTerm (Chr chr) =
+evalTerm (Chr chr) = do
   single chr $> chr
-evalTerm (Str str) =
+evalTerm (Str str) = do
   traverse_ single str $> str
 evalTerm (Map f x) = do
   result <- evalTerm x
@@ -101,7 +103,7 @@ evalTerm (Seq x y) = do
   rx <- evalTerm x
   ry <- evalTerm y
   pure (rx, ry)
-evalTerm (Alt x y) =
+evalTerm (Alt x y) = do
   alt (evalTerm x) (evalTerm y)
 evalTerm (Fix fix) = do
   let fix' :: Parse a -> Eval s (Parse a)

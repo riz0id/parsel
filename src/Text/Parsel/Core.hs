@@ -4,13 +4,14 @@
 
 module Text.Parsel.Core
   ( -- * Terms
-    Parse (Bot, Val, Chr, Str, Map, Seq, Alt, Fix),
+    Parse (Bot, Loc, Val, Chr, Str, Map, Seq, Alt, Fix),
   )
 where
 
 import Control.Applicative (liftA2, many, some, Alternative, empty, (<|>))
 
 import Data.Kind (Type)
+import Data.SrcLoc (SrcLoc)
 
 --------------------------------------------------------------------------------
 
@@ -19,6 +20,7 @@ import Data.Kind (Type)
 -- @since 1.0.0
 data Parse (a :: Type) :: Type where
   Bot :: Parse a
+  Loc :: Parse SrcLoc
   Val :: a -> Parse a
   Chr :: {-# UNPACK #-} !Char -> Parse Char
   Str :: String -> Parse String

@@ -19,6 +19,9 @@ module Text.Parsel
     -- * TODO
     parse,
 
+    -- * TODO
+    location,
+
     -- * Characters
     char,
     lower,
@@ -40,7 +43,8 @@ import Data.Functor (($>))
 
 --------------------------------------------------------------------------------
 
-import Text.Parsel.Core (Parse (Alt, Chr, Str))
+import Data.SrcLoc (SrcLoc)
+import Text.Parsel.Core (Parse (Alt, Chr, Loc, Str))
 import Text.Parsel.Eval (evalST, evalTerm)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 
@@ -52,7 +56,16 @@ import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 parse :: String -> Parse a -> Either ParseError a
 parse input p = evalST input (evalTerm p)
 
---------------------------------------------------------------------------------
+-- TODO ------------------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+location :: Parse SrcLoc
+location = Loc
+{-# INLINE CONLIKE location #-}
+
+-- TODO ------------------------------------------------------------------------
 
 -- | TODO
 --
