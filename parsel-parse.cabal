@@ -1,0 +1,131 @@
+cabal-version: 2.4
+
+name:        parsel-parse
+category:    Data
+version:     0.0.0
+synopsis:    TODO 
+description: TODO 
+
+author:       jacob leach
+maintainer:   jacobleach@protonmail.com
+copyright:    2022, Jacob Leach
+homepage:     https://github.com/riz0id/parsel-parse
+license:      ISC
+license-file: LICENSE
+build-type:   Simple
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+tested-with:
+  GHC == 9.2.2
+  GHC == 9.0.2
+
+source-repository head
+  type:     git
+  location: https://github.com/riz0id/parsel-parse
+
+flag llvm
+  Description: Compile using the LLVM backend.
+  Default:     False
+  Manual:      True
+
+common common
+  default-language: Haskell2010
+
+  default-extensions:
+    ImportQualifiedPost MagicHash
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wcpp-undef
+    -Widentities
+    -Wmissing-export-lists
+
+    -ddump-to-file
+    -ddump-stg-final
+    -ddump-simpl
+    -dppr-cols=120
+    -dsuppress-module-prefixes
+    -dsuppress-uniques
+
+  if flag(llvm) 
+    ghc-options: -fllvm 
+
+  build-depends:
+    , base >= 4.15.1 && < 4.17
+
+library
+  import:         common
+  hs-source-dirs: src
+
+  ghc-options:
+    -- `-j4` is set (as opposed to `-j`) due to the small number of modules that 
+    -- are exported by this package.
+    -j4
+
+    -- `-O` is explicitly set since none of the functions exported by this 
+    -- library would benefit from higher optimization levels. This helps reduce 
+    -- compile times. 
+    -O3
+
+    -- `-fmax-simplifier-iterations` is set to keep compile times in check. 
+    -- The functions in this library are simple and do not need very many 
+    -- simplifier passes.
+    -fmax-simplifier-iterations=20
+
+    -ddump-to-file
+    -ddump-simpl
+    -ddump-stg-final
+    -dppr-cols=120
+    -dsuppress-module-prefixes
+    -foptimal-applicative-do
+
+  build-depends:
+    , ghc-prim         >= 0.7.0  && < 0.9
+    , mtl
+    , primitive
+    , prim-compat      
+    , prim-bool
+    , prim-int
+    , prim-ord
+    , source-locations
+    , template-haskell >= 2.17.0 && < 2.19
+
+  exposed-modules:
+    Text.Parsel
+
+  other-modules:
+    Text.Parsel.Core
+    Text.Parsel.Eval
+    Text.Parsel.Eval.Context
+    Text.Parsel.Eval.Core
+    Text.Parsel.Eval.Error
+    Text.Parsel.Eval.Store
+
+test-suite test
+  import:         common
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Test.hs
+
+  default-extensions:
+    BlockArguments GADTs ImportQualifiedPost KindSignatures MagicHash 
+    ViewPatterns
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    "-with-rtsopts=-N"
+
+  build-depends:
+    , hedgehog
+    , parsel-parse
+    , tasty
+    , tasty-hedgehog 
+
+  other-modules: 
+    Test.Compat
+    Test.Core

@@ -1,0 +1,12 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:parsel-parse"
+    - path: "./test"
+      component: "test:test"
+
+dependencies:
+  - parsel-parse.cabal
+  - default.nix
+  - shell.nix
+  - .hlint.yaml
