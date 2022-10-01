@@ -36,7 +36,13 @@ module Text.Parsel
 
     -- * Strings
     string,
+
+    -- * TODO
     between,
+    parentheses,
+    brackets,
+    braces,
+    angles,
 
     -- * Choice
     choice,
@@ -99,13 +105,6 @@ column = Map SrcLoc.line Loc
 -- | TODO
 --
 -- @since 1.0.0
-between :: Parse a -> Parse b -> Parse c -> Parse c
-between tml tmr tm = tml *> tm <* tmr
-{-# INLINE CONLIKE between #-}
-
--- | TODO
---
--- @since 1.0.0
 char :: Char -> Parse Char
 char = Chr
 {-# INLINE CONLIKE char #-}
@@ -157,6 +156,43 @@ whitespace = foldr (Alt . Chr) (Chr ' ') "\t\r\n" $> ()
 string :: String -> Parse String
 string = Str
 {-# INLINE CONLIKE string #-}
+
+-- TODO ------------------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+between :: Parse a -> Parse b -> Parse c -> Parse c
+between tml tmr tm = tml *> tm <* tmr
+{-# INLINE CONLIKE between #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+parentheses :: Parse a -> Parse a
+parentheses = between (char '(') (char ')')
+{-# INLINE CONLIKE parentheses #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+brackets :: Parse a -> Parse a
+brackets = between (char '[') (char ']')
+{-# INLINE CONLIKE brackets #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+braces :: Parse a -> Parse a
+braces = between (char '{') (char '}')
+{-# INLINE CONLIKE braces #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+angles :: Parse a -> Parse a
+angles = between (char '<') (char '>')
+{-# INLINE CONLIKE angles #-}
 
 -- TODO ------------------------------------------------------------------------
 
