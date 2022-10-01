@@ -18,6 +18,7 @@ module Text.Parsel
 
     -- * TODO
     parse,
+    parseIO,
 
     -- * TODO
     location,
@@ -60,7 +61,7 @@ import Data.SrcLoc qualified as SrcLoc
 --------------------------------------------------------------------------------
 
 import Text.Parsel.Core (Parse (Alt, Chr, Loc, Map))
-import Text.Parsel.Eval (evalST, evalTerm)
+import Text.Parsel.Eval (evalST, evalTerm, evalIO)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 
 -- TODO ------------------------------------------------------------------------
@@ -70,6 +71,12 @@ import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 -- @since 1.0.0
 parse :: String -> Parse a -> Either ParseError a
 parse input p = evalST input (evalTerm p)
+
+-- | TODO
+--
+-- @since 1.0.0
+parseIO :: String -> Parse a -> IO (Either ParseError a)
+parseIO input p = evalIO input (evalTerm p)
 
 -- TODO ------------------------------------------------------------------------
 
