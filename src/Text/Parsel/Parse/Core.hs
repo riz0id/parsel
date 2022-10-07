@@ -7,12 +7,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 
-module Text.Parsel.Eval.Core
-  ( -- * Evaluation Monad
-    EvalIO,
-    runEvalST,
-    Eval (Eval, unEval),
-    runEvalIO,
+module Text.Parsel.Parse.Core
+  ( -- * Parseuation Monad
+    ParseIO,
+    runParseST,
+    Parse (Parse, unParse),
+    runParseIO,
   )
 where
 
@@ -28,74 +28,74 @@ import Data.Kind (Type)
 import GHC.Exts (State#)
 import GHC.IO (IO (IO))
 
-import Text.Parsel.Eval.Context (EvalCtx)
-import Text.Parsel.Eval.Store (EvalStore)
+import Text.Parsel.Parse.Context (ParseCtx)
+import Text.Parsel.Parse.Store (ParseStore)
 import Text.Parsel.ParseError (ParseError)
 
 --------------------------------------------------------------------------------
 
--- Eval Monad ------------------------------------------------------------------
+-- Parse Monad ------------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-runEvalST ::
-  EvalCtx ->
-  EvalStore ->
-  Eval s a ->
-  ST s (EvalStore, Either ParseError a)
-runEvalST ctx env0 (Eval k) =
+runParseST ::
+  ParseCtx ->
+  ParseStore ->
+  Parse s a ->
+  ST s (ParseStore, Either ParseError a)
+runParseST ctx env0 (Parse k) =
   primitive \rw0# -> case k ctx env0 rw0# of
     (# rw1#, env1, (# e | #) #) -> (# rw1#, (env1, Left e) #)
     (# rw1#, env1, (# | x #) #) -> (# rw1#, (env1, Right x) #)
-{-# INLINE runEvalST #-}
+{-# INLINE runParseST #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-runEvalIO ::
-  EvalCtx ->
-  EvalStore ->
-  EvalIO a ->
-  IO (EvalStore, Either ParseError a)
-runEvalIO ctx env0 (Eval k) =
+runParseIO ::
+  ParseCtx ->
+  ParseStore ->
+  ParseIO a ->
+  IO (ParseStore, Either ParseError a)
+runParseIO ctx env0 (Parse k) =
   primitive \rw0# -> case k ctx env0 rw0# of
     (# rw1#, env1, (# e | #) #) -> (# rw1#, (env1, Left e) #)
     (# rw1#, env1, (# | x #) #) -> (# rw1#, (env1, Right x) #)
-{-# INLINE runEvalIO #-}
+{-# INLINE runParseIO #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-type EvalIO :: Type -> Type
-type EvalIO = Eval RealWorld
+type ParseIO :: Type -> Type
+type ParseIO = Parse RealWorld
 
 -- | TODO
 --
 -- @since 1.0.0
-newtype Eval s a = Eval
-  { unEval ::
-      EvalCtx ->
-      EvalStore ->
+newtype Parse s a = Parse
+  { unParse ::
+      ParseCtx ->
+      ParseStore ->
       State# s ->
-      (# State# s, EvalStore, (# ParseError| a #) #)
+      (# State# s, ParseStore, (# ParseError| a #) #)
   }
 
 -- | @since 1.0.0
-instance Functor (Eval s) where
-  fmap f (Eval k) =
-    Eval \ctx env0 st0# -> case k ctx env0 st0# of
+instance Functor (Parse s) where
+  fmap f (Parse k) =
+    Parse \ctx env0 st0# -> case k ctx env0 st0# of
       (# st1#, env1, (# e | #) #) -> (# st1#, env1, (# e | #) #)
       (# st1#, env1, (# | x #) #) -> (# st1#, env1, (# | f x #) #)
   {-# INLINE fmap #-}
 
 -- | @since 1.0.0
-instance Applicative (Eval s) where
-  pure x = Eval \_ env st# -> (# st#, env, (# | x #) #)
+instance Applicative (Parse s) where
+  pure x = Parse \_ env st# -> (# st#, env, (# | x #) #)
   {-# INLINE pure #-}
 
-  Eval f <*> Eval g =
-    Eval \ctx env0 st0# -> case f ctx env0 st0# of
+  Parse f <*> Parse g =
+    Parse \ctx env0 st0# -> case f ctx env0 st0# of
       (# st1#, env1, (# e | #) #) -> (# st1#, env1, (# e | #) #)
       (# st1#, env1, (# | k #) #) -> case g ctx env1 st1# of
         (# st2#, env2, (# e | #) #) -> (# st2#, env2, (# e | #) #)
@@ -103,57 +103,57 @@ instance Applicative (Eval s) where
   {-# INLINE (<*>) #-}
 
 -- | @since 1.0.0
-instance Monad (Eval s) where
-  Eval k >>= f =
-    Eval \ctx env0 st0# -> case k ctx env0 st0# of
+instance Monad (Parse s) where
+  Parse k >>= f =
+    Parse \ctx env0 st0# -> case k ctx env0 st0# of
       (# st1#, env1, (# e | #) #) -> (# st1#, env1, (# e | #) #)
-      (# st1#, env1, (# | x #) #) -> unEval (f x) ctx env1 st1#
+      (# st1#, env1, (# | x #) #) -> unParse (f x) ctx env1 st1#
   {-# INLINE (>>=) #-}
 
 -- | @since 1.0.0
-instance PrimMonad (Eval s) where
-  type PrimState (Eval s) = s
+instance PrimMonad (Parse s) where
+  type PrimState (Parse s) = s
 
   primitive k =
-    Eval \_ env st0# -> case k st0# of
+    Parse \_ env st0# -> case k st0# of
       (# st1#, x #) -> (# st1#, env, (# | x #) #)
   {-# INLINE primitive #-}
 
 -- | @since 1.0.0
-instance MonadIO (Eval RealWorld) where
+instance MonadIO (Parse RealWorld) where
   liftIO (IO k) =
-    Eval \_ env rw0# -> case k rw0# of
+    Parse \_ env rw0# -> case k rw0# of
       (# rw1#, x #) -> (# rw1#, env, (# | x #) #)
   {-# INLINE liftIO #-}
 
 -- | @since 1.0.0
-instance MonadError ParseError (Eval s) where
-  throwError e = Eval \_ env st# -> (# st#, env, (# e | #) #)
+instance MonadError ParseError (Parse s) where
+  throwError e = Parse \_ env st# -> (# st#, env, (# e | #) #)
   {-# INLINE throwError #-}
 
-  catchError (Eval k) f =
-    Eval \ctx env0 st0# -> case k ctx env0 st0# of
-      (# st1#, env1, (# e | #) #) -> unEval (f e) ctx env1 st1#
+  catchError (Parse k) f =
+    Parse \ctx env0 st0# -> case k ctx env0 st0# of
+      (# st1#, env1, (# e | #) #) -> unParse (f e) ctx env1 st1#
       (# st1#, env1, (# | x #) #) -> (# st1#, env1, (# | x #) #)
   {-# INLINE catchError #-}
 
 -- | @since 1.0.0
-instance MonadReader EvalCtx (Eval s) where
-  ask = Eval \ctx env st0# -> (# st0#, env, (# | ctx #) #)
+instance MonadReader ParseCtx (Parse s) where
+  ask = Parse \ctx env st0# -> (# st0#, env, (# | ctx #) #)
   {-# INLINE ask #-}
 
-  local f (Eval k) = Eval \ctx env -> k (f ctx) env
+  local f (Parse k) = Parse \ctx env -> k (f ctx) env
   {-# INLINE local #-}
 
 -- | @since 1.0.0
-instance MonadState EvalStore (Eval s) where
-  get = Eval \_ env st# -> (# st#, env, (# | env #) #)
+instance MonadState ParseStore (Parse s) where
+  get = Parse \_ env st# -> (# st#, env, (# | env #) #)
   {-# INLINE get #-}
 
-  put env = Eval \_ _ st# -> (# st#, env, (# | () #) #)
+  put env = Parse \_ _ st# -> (# st#, env, (# | () #) #)
   {-# INLINE put #-}
 
   state k =
-    Eval \_ env0 st# -> case k env0 of
+    Parse \_ env0 st# -> case k env0 of
       (x, env1) -> (# st#, env1, (# | x #) #)
   {-# INLINE state #-}

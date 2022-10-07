@@ -98,11 +98,11 @@ library
     Text.Parsel
 
   other-modules:
-    Text.Parsel.Core
-    Text.Parsel.Eval
-    Text.Parsel.Eval.Context
-    Text.Parsel.Eval.Core
-    Text.Parsel.Eval.Store
+    Text.Parsel.Parse
+    Text.Parsel.Parse.Context
+    Text.Parsel.Parse.Core
+    Text.Parsel.Parse.Store
+    Text.Parsel.Grammar.Core
     Text.Parsel.ParseError
 
 test-suite test

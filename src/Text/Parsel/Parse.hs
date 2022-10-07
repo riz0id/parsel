@@ -7,11 +7,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UnboxedTuples #-}
 
-module Text.Parsel.Eval
-  ( -- * Running Eval
+module Text.Parsel.Parse
+  ( module Text.Parsel.Parse.Core,
+  
+    -- * Running Eval
     evalIO,
     evalST,
-    runEvalIO,
 
     -- * Evaluating Terms
     evalTerm,
@@ -24,9 +25,6 @@ module Text.Parsel.Eval
     single,
     advance,
     alt,
-
-    -- * Monad
-    Eval (Eval, unEval),
   )
 where
 
@@ -35,7 +33,6 @@ import Control.Monad.Reader (asks)
 import Control.Monad.ST (runST)
 import Control.Monad.State (gets, modify')
 
-import Data.Foldable (traverse_)
 import Data.Functor (($>))
 import Data.List qualified as List
 import Data.SrcLoc (SrcLoc, posn)
@@ -43,15 +40,16 @@ import Data.SrcLoc qualified as SrcLoc
 
 --------------------------------------------------------------------------------
 
-import Text.Parsel.Core
-  ( Parse (Alt, Bot, Chr, Fix, Map, Seq, Val, Loc),
+import Control.Applicative (liftA2)
+import Text.Parsel.Grammar.Core
+  ( Grammar (Alt, Bot, Chr, Fix, Loc, Map, Seq, Eps),
   )
-import Text.Parsel.Eval.Context
-  ( EvalCtx (EvalCtx, ctx'source),
+import Text.Parsel.Parse.Context
+  ( ParseCtx (ParseCtx, ctx'source),
   )
-import Text.Parsel.Eval.Core (Eval (Eval, unEval), EvalIO, runEvalIO, runEvalST)
-import Text.Parsel.Eval.Store
-  ( EvalStore (EvalStore, store'location),
+import Text.Parsel.Parse.Core
+import Text.Parsel.Parse.Store
+  ( ParseStore (ParseStore, store'location, store'branches),
   )
 import Text.Parsel.ParseError
   ( ParseError (ParseError),
@@ -63,56 +61,43 @@ import Text.Parsel.ParseError
 -- | TODO
 --
 -- @since 1.0.0
-evalST :: String -> (forall s. Eval s a) -> Either ParseError a
+evalST :: String -> (forall s. Parse s a) -> Either ParseError a
 evalST src m = runST do
-  let ctx = EvalCtx src
-  let env = EvalStore SrcLoc.empty
-  result <- runEvalST ctx env m
+  let ctx = ParseCtx src
+  let env = ParseStore SrcLoc.empty []
+  result <- runParseST ctx env m
   pure (snd result)
 
 -- | TODO
 --
 -- @since 1.0.0
-evalIO :: String -> EvalIO a -> IO (Either ParseError a)
+evalIO :: String -> ParseIO a -> IO (Either ParseError a)
 evalIO src m =
-  let ctx = EvalCtx src
-      env = EvalStore SrcLoc.empty
-   in fmap snd (runEvalIO ctx env m)
+  let ctx = ParseCtx src
+      env = ParseStore SrcLoc.empty []
+   in fmap snd (runParseIO ctx env m)
 
 -- Evaluating Terms ------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-evalTerm :: forall a s. Parse a -> Eval s a
-evalTerm Bot = do 
-  raiseBot
-evalTerm Loc = do
-  gets store'location
-evalTerm (Val val) = do
-  pure val
-evalTerm (Chr chr) = do
-  single chr $> chr
--- evalTerm (Str str) = do
---   traverse_ single str $> str
-evalTerm (Map f x) = do
-  result <- evalTerm x
-  pure (f result)
-evalTerm (Seq x y) = do
-  rx <- evalTerm x
-  ry <- evalTerm y
-  pure (rx, ry)
-evalTerm (Alt x y) = do
-  alt (evalTerm x) (evalTerm y)
-evalTerm (Fix fix) = do
-  evalTerm $ fix (Fix fix)
+evalTerm :: forall a s. Grammar a -> Parse s a
+evalTerm Bot = raiseBot
+evalTerm Loc = gets store'location
+evalTerm Eps = pure ()
+evalTerm (Chr chr) = single chr $> chr
+evalTerm (Map f x) = fmap f (evalTerm x)
+evalTerm (Seq x y) = liftA2 (,) (evalTerm x) (evalTerm y)
+evalTerm (Alt x y) = alt (evalTerm x) (evalTerm y)
+evalTerm (Fix fix) = evalTerm (fix (Fix fix))
 
 -- Errors ----------------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-raiseEoF :: Eval s a
+raiseEoF :: Parse s a
 raiseEoF = do
   src <- asks ctx'source
   loc <- gets store'location
@@ -121,7 +106,7 @@ raiseEoF = do
 -- | TODO
 --
 -- @since 1.0.0
-raiseBot :: Eval s a
+raiseBot :: Parse s a
 raiseBot = do
   src <- asks ctx'source
   loc <- gets store'location
@@ -130,7 +115,7 @@ raiseBot = do
 -- | TODO
 --
 -- @since 1.0.0
-raiseChrMismatch :: Char -> Eval s a
+raiseChrMismatch :: Char -> Parse s a
 raiseChrMismatch chr = do
   src <- asks ctx'source
   begin <- gets store'location
@@ -143,7 +128,7 @@ raiseChrMismatch chr = do
 -- | TODO
 --
 -- @since 1.0.0
-single :: Char -> Eval s ()
+single :: Char -> Parse s ()
 single chr = do
   chr' <- peek
   if chr == chr'
@@ -153,7 +138,7 @@ single chr = do
 -- | TODO
 --
 -- @since 1.0.0
-advance :: Eval s ()
+advance :: Parse s ()
 advance = do
   src <- asks ctx'source
   loc <- gets store'location
@@ -167,7 +152,7 @@ advance = do
 -- | TODO
 --
 -- @since 1.0.0
-peek :: Eval s Char
+peek :: Parse s Char
 peek = do
   src <- asks ctx'source
   pos <- gets (posn . store'location)
@@ -178,8 +163,8 @@ peek = do
 -- | TODO
 --
 -- @since 1.0.0
-alt :: Eval s a -> Eval s a -> Eval s a
-alt (Eval f) (Eval g) =
-  Eval \ctx env0 st0# -> case f ctx env0 st0# of
-    (# st1#, _, (# _ | #) #) -> g ctx env0 st1#
+alt :: Parse s a -> Parse s a -> Parse s a
+alt (Parse f) (Parse g) =
+  Parse \ctx env0 st0# -> case f ctx env0 st0# of
+    (# st1#, env1, (# e | #) #) -> g ctx env1{store'location = env0.store'location, store'branches = e : env1.store'branches} st1#
     (# st1#, env1, (# | x #) #) -> (# st1#, env1, (# | x #) #)
