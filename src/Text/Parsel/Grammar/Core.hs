@@ -60,7 +60,7 @@ data Grammar (a :: Type) :: Type where
   Eps :: Grammar ()
   Chr :: {-# UNPACK #-} !Char -> Grammar Char
   Str :: {-# UNPACK #-} !Int -> {-# UNPACK #-} !Text -> Grammar Text
-  Mat :: {-# UNPACK #-} !Match -> Grammar Char
+  Mat :: Match -> Grammar Char
   Map :: (a -> b) -> Grammar a -> Grammar b
   Seq :: Grammar a -> Grammar b -> Grammar (a, b)
   Alt :: Grammar a -> Grammar a -> Grammar a
