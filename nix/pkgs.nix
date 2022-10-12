@@ -8,6 +8,9 @@ in import nixpkgs {
       (import extensions/parsel.nix {
         inherit ghc;
       })
+      (import extensions/parse-lisp.nix {
+        inherit ghc;
+      })
       (import extensions/prim-compat.nix {
         inherit ghc;
       })

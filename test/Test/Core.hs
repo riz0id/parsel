@@ -1,6 +1,8 @@
 
 module Test.Core
   ( TestTree,
+    Property,
+    property,
     testGroup,
     testProp,
   )

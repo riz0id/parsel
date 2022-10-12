@@ -1,0 +1,34 @@
+cabal-version: 2.4
+
+name:       parse-lisp
+version:    1.0.0
+author:     jacob leach
+maintainer: jacobleach@protonmail.com
+copyright:  2022, Jacob Leach
+build-type: Simple
+
+executable example
+  default-language: Haskell2010
+  main-is:          Main.hs
+
+  default-extensions: 
+    ApplicativeDo BlockArguments ImportQualifiedPost OverloadedStrings
+
+  ghc-options:      
+    -Wall
+    -Wcompat
+    -Widentities
+
+    -O2
+    -foptimal-applicative-do
+
+    -ddump-to-file
+    -ddump-stg-final
+    -ddump-simpl
+    -dppr-cols=120
+    -dsuppress-module-prefixes
+
+  build-depends:  
+    , base >= 4.15.1 && < 4.17
+    , parsel
+    , text

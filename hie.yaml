@@ -4,6 +4,8 @@ cradle:
       component: "lib:parsel"
     - path: "./test"
       component: "test:test"
+    - path: "./bench/speed"
+      component: "bench:bench-speed"
 
 dependencies:
   - parsel.cabal

@@ -69,7 +69,7 @@ library
     -- `-O` is explicitly set since none of the functions exported by this 
     -- library would benefit from higher optimization levels. This helps reduce 
     -- compile times. 
-    -O3
+    -O2
 
     -- `-fmax-simplifier-iterations` is set to keep compile times in check. 
     -- The functions in this library are simple and do not need very many 
@@ -84,6 +84,7 @@ library
     -foptimal-applicative-do
 
   build-depends:
+    , deepseq
     , ghc-prim         >= 0.7.0  && < 0.9
     , mtl
     , primitive
@@ -93,15 +94,16 @@ library
     , prim-ord
     , source-locations
     , template-haskell >= 2.17.0 && < 2.19
+    , text
 
   exposed-modules:
     Text.Parsel
+    Text.Parsel.Grammar
 
   other-modules:
+    Data.Vector
     Text.Parsel.Parse
-    Text.Parsel.Parse.Context
     Text.Parsel.Parse.Core
-    Text.Parsel.Parse.Store
     Text.Parsel.Grammar.Core
     Text.Parsel.ParseError
 
@@ -125,7 +127,30 @@ test-suite test
     , parsel
     , tasty
     , tasty-hedgehog 
+    , text
 
   other-modules: 
     Test.Compat
     Test.Core
+    Test.Parsel
+    Test.Parsel.Single
+
+benchmark bench-speed
+    import:           common
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   bench/speed
+    default-language: Haskell2010
+    
+    ghc-options: 
+      -O2 
+      -Wall
+
+    build-depends:
+      , criterion 
+      , deepseq
+      , parsel
+      , primitive
+      , text 
+
+    

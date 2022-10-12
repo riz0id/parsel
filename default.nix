@@ -9,7 +9,8 @@ in {
     fourmolu
     haskell-language-server
     hlint
-    parsel; 
+    parsel
+    parse-lisp; 
     
   inherit (pkgs) 
     cabal-install 

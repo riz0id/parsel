@@ -9,88 +9,86 @@
 
 module Text.Parsel.Parse
   ( module Text.Parsel.Parse.Core,
-  
+
     -- * Running Eval
     evalIO,
     evalST,
 
     -- * Evaluating Terms
-    evalTerm,
+    evalGrammar,
 
     -- * Errors
     raiseChrMismatch,
     raiseEoF,
 
     -- * Operations
-    single,
+    satisfy,
     advance,
-    alt,
   )
 where
 
+import Control.Applicative (empty, liftA2, (<|>))
+
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader (asks)
 import Control.Monad.ST (runST)
 import Control.Monad.State (gets, modify')
 
 import Data.Functor (($>))
-import Data.List qualified as List
-import Data.SrcLoc (SrcLoc, posn)
-import Data.SrcLoc qualified as SrcLoc
+import Data.SrcLoc (posn)
+import Data.Text qualified as Text
+import Data.Text (Text)
+
+import Prelude hiding (take)
 
 --------------------------------------------------------------------------------
 
-import Control.Applicative (liftA2)
 import Text.Parsel.Grammar.Core
-  ( Grammar (Alt, Bot, Chr, Fix, Loc, Map, Seq, Eps),
-  )
-import Text.Parsel.Parse.Context
-  ( ParseCtx (ParseCtx, ctx'source),
+  ( Grammar (Alt, Bot, Chr, Eps, Fix, Loc, Map, Mat, Seq, Str),
+    Match,
+    member,
   )
 import Text.Parsel.Parse.Core
-import Text.Parsel.Parse.Store
-  ( ParseStore (ParseStore, store'location, store'branches),
-  )
-import Text.Parsel.ParseError
-  ( ParseError (ParseError),
-    ParseErrorInfo (ExnChrMismatch, ExnEndOfFile, ExnEvalBottom),
-  )
+import Text.Parsel.ParseError (ParseError)
+import Text.Parsel.ParseError qualified as ParseError
 
 -- Running Eval ----------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-evalST :: String -> (forall s. Parse s a) -> Either ParseError a
+evalST :: Text -> (forall s. Parse s a) -> Either ParseError a
 evalST src m = runST do
-  let ctx = ParseCtx src
-  let env = ParseStore SrcLoc.empty []
-  result <- runParseST ctx env m
+  result <- runPrimParse (newParseState src) m
   pure (snd result)
+{-# INLINE evalST #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-evalIO :: String -> ParseIO a -> IO (Either ParseError a)
-evalIO src m =
-  let ctx = ParseCtx src
-      env = ParseStore SrcLoc.empty []
-   in fmap snd (runParseIO ctx env m)
+evalIO :: Text -> ParseIO a -> IO (Either ParseError a)
+evalIO src m = do
+  result <- runPrimParse (newParseState src) m
+  pure (snd result)
+{-# INLINE evalIO #-}
 
 -- Evaluating Terms ------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-evalTerm :: forall a s. Grammar a -> Parse s a
-evalTerm Bot = raiseBot
-evalTerm Loc = gets store'location
-evalTerm Eps = pure ()
-evalTerm (Chr chr) = single chr $> chr
-evalTerm (Map f x) = fmap f (evalTerm x)
-evalTerm (Seq x y) = liftA2 (,) (evalTerm x) (evalTerm y)
-evalTerm (Alt x y) = alt (evalTerm x) (evalTerm y)
-evalTerm (Fix fix) = evalTerm (fix (Fix fix))
+evalGrammar :: forall a s. Grammar a -> Parse s a
+evalGrammar Bot = empty
+evalGrammar Loc = gets state'location
+evalGrammar Eps = pure ()
+evalGrammar (Chr chr) = single chr
+evalGrammar (Str len str) = string len str
+evalGrammar (Mat mat) = satisfy mat
+evalGrammar (Map f x) = fmap f (evalGrammar x)
+evalGrammar (Seq x y) = liftA2 (,) (evalGrammar x) (evalGrammar y)
+evalGrammar (Alt x y) = evalGrammar x <|> evalGrammar y
+evalGrammar (Fix f) = evalGrammar (f (Fix f))
+{-# INLINE evalGrammar #-}
+
 
 -- Errors ----------------------------------------------------------------------
 
@@ -99,72 +97,102 @@ evalTerm (Fix fix) = evalTerm (fix (Fix fix))
 -- @since 1.0.0
 raiseEoF :: Parse s a
 raiseEoF = do
-  src <- asks ctx'source
-  loc <- gets store'location
-  throwError (ParseError ExnEndOfFile loc loc src)
-
--- | TODO
---
--- @since 1.0.0
-raiseBot :: Parse s a
-raiseBot = do
-  src <- asks ctx'source
-  loc <- gets store'location
-  throwError (ParseError ExnEvalBottom loc loc src)
+  loc <- gets state'location
+  src <- gets state'source
+  throwError (ParseError.makeExnEndOfFile loc src)
+{-# INLINE raiseEoF #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 raiseChrMismatch :: Char -> Parse s a
 raiseChrMismatch chr = do
-  src <- asks ctx'source
-  begin <- gets store'location
-  let end :: SrcLoc
-      end = SrcLoc.feed begin chr
-   in throwError (ParseError (ExnChrMismatch chr) begin end src)
+  loc <- gets state'location
+  src <- gets state'source
+  throwError (ParseError.makeExnChar loc chr src)
+{-# INLINE raiseChrMismatch #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+raiseStrMismatch :: Text -> Parse s a
+raiseStrMismatch text = do
+  loc <- gets state'location
+  src <- gets state'source
+  throwError (ParseError.makeExnString loc text src)
+{-# INLINE raiseStrMismatch #-}
 
 -- Operations ------------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-single :: Char -> Parse s ()
-single chr = do
-  chr' <- peek
-  if chr == chr'
-    then advance
+single :: Char -> Parse s Char
+single match = do
+  chr <- peek
+  if chr == match
+    then advance chr $> chr
     else raiseChrMismatch chr
+{-# INLINE single #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-advance :: Parse s ()
-advance = do
-  src <- asks ctx'source
-  loc <- gets store'location
-  if posn loc >= length src
-    then raiseEoF
-    else do
-      let chr = src List.!! posn loc
-      modify' \env ->
-        env {store'location = SrcLoc.feed env.store'location chr}
+string :: Int -> Text -> Parse s Text
+string size text = do
+  substr <- take size 
+  if text == substr
+    then text <$ advances size text
+    else raiseStrMismatch text
+{-# INLINE string #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+satisfy :: Match -> Parse s Char
+satisfy match = do
+  chr <- peek
+  if member chr match
+    then advance chr $> chr
+    else raiseChrMismatch chr
+{-# INLINE satisfy #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+advance :: Char -> Parse s ()
+advance chr = modify' (feedParseState chr)
+{-# INLINE advance #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+advances :: Int -> Text -> Parse s ()
+advances size text = modify' (feedsParseState size text)
+{-# INLINE advances #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 peek :: Parse s Char
 peek = do
-  src <- asks ctx'source
-  pos <- gets (posn . store'location)
-  if pos >= length src
-    then raiseEoF
-    else pure (src List.!! pos)
+  src <- gets state'source
+  len <- gets state'length
+  pos <- gets (posn . state'location)
+  if pos < len
+    then pure (Text.head src)
+    else raiseEoF 
+{-# INLINE peek #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-alt :: Parse s a -> Parse s a -> Parse s a
-alt (Parse f) (Parse g) =
-  Parse \ctx env0 st0# -> case f ctx env0 st0# of
-    (# st1#, env1, (# e | #) #) -> g ctx env1{store'location = env0.store'location, store'branches = e : env1.store'branches} st1#
-    (# st1#, env1, (# | x #) #) -> (# st1#, env1, (# | x #) #)
+take :: Int -> Parse s Text
+take n = do
+  src <- gets state'source
+  len <- gets state'length
+  pos <- gets (posn . state'location)
+  if n + pos <= len
+    then pure (Text.take n src)
+    else raiseEoF
+{-# INLINE take #-}

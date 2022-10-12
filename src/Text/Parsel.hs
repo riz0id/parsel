@@ -1,5 +1,7 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Text.Parsel
   ( -- * TODO
@@ -9,14 +11,10 @@ module Text.Parsel
     ParseError (ParseError, exn'kind, exn'begin, exn'end, exn'source),
 
     -- ** Parse Error Info
-    ParseErrorInfo
-      ( ExnEndOfFile,
-        ExnEvalBottom,
-        ExnChrMismatch,
-        ExnStrMismatch
-      ),
+    ParseErrorInfo (ExnEoF, ExnBot, ExnChr, ExnStr),
 
     -- * TODO
+    parseString,
     parse,
     parseIO,
 
@@ -33,14 +31,17 @@ module Text.Parsel
     alpha,
     digit,
     alphaNum,
-    whitespace,
 
     -- * Strings
     string,
 
+    -- * Whitespace
+    whitespace,
+    whitespaces,
+    whitespaces1,
+
     -- * TODO
     between,
-    surround,
     parentheses,
     brackets,
     braces,
@@ -51,17 +52,21 @@ module Text.Parsel
   )
 where
 
-import Control.Applicative ((<|>), liftA2)
+import Control.Applicative (empty, many, some, (<|>))
 
-import Data.Functor (($>))
-import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.Foldable (foldr')
 import Data.SrcLoc (SrcLoc)
 import Data.SrcLoc qualified as SrcLoc
+import Data.Text (Text)
+import Data.Text qualified as Text
 
 --------------------------------------------------------------------------------
 
-import Text.Parsel.Grammar.Core (Grammar (Alt, Chr, Loc, Map))
-import Text.Parsel.Parse (evalST, evalTerm, evalIO)
+import Text.Parsel.Grammar.Core
+  ( Grammar (Chr, Loc, Map, Mat, Str),
+    Match (Alpha, Digit, Lower, Space, Upper),
+  )
+import Text.Parsel.Parse (evalIO, evalST, evalGrammar)
 import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 
 -- TODO ------------------------------------------------------------------------
@@ -69,14 +74,20 @@ import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 -- | TODO
 --
 -- @since 1.0.0
-parse :: String -> Grammar a -> Either ParseError a
-parse input p = evalST input (evalTerm p)
+parseString :: String -> Grammar a -> Either ParseError a
+parseString str p = evalST (Text.pack str) (evalGrammar p)
 
 -- | TODO
 --
 -- @since 1.0.0
-parseIO :: String -> Grammar a -> IO (Either ParseError a)
-parseIO input p = evalIO input (evalTerm p)
+parse :: Text -> Grammar a -> Either ParseError a
+parse input p = evalST input (evalGrammar p)
+
+-- | TODO
+--
+-- @since 1.0.0
+parseIO :: Text -> Grammar a -> IO (Either ParseError a)
+parseIO input p = evalIO input (evalGrammar p)
 
 -- TODO ------------------------------------------------------------------------
 
@@ -121,49 +132,66 @@ char = Chr
 --
 -- @since 1.0.0
 lower :: Grammar Char
-lower = foldr (Alt . Chr) (Chr 'a') ['b' .. 'z']
+lower = Mat Lower
 {-# INLINE CONLIKE lower #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 upper :: Grammar Char
-upper = foldr (Alt . Chr) (Chr 'A') ['B' .. 'Z']
+upper = Mat Upper
 {-# INLINE CONLIKE upper #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 alpha :: Grammar Char
-alpha = Alt lower upper
+alpha = Mat Alpha
 {-# INLINE CONLIKE alpha #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 digit :: Grammar Char
-digit = foldr (Alt . Chr) (Chr '0') ['1' .. '9']
+digit = Mat Digit
 {-# INLINE CONLIKE digit #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 alphaNum :: Grammar Char
-alphaNum = Alt alpha digit
+alphaNum = alpha <|> digit
 {-# INLINE CONLIKE alphaNum #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-whitespace :: Grammar ()
-whitespace = foldr (Alt . Chr) (Chr ' ') "\t\r\n" $> ()
+string :: Text -> Grammar Text
+string text = Str (Text.length text) text
+{-# INLINE CONLIKE string #-}
+
+-- Whitespace ------------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
-string :: String -> Grammar String
-string = foldr (liftA2 (:) . Chr) (pure "")
-{-# INLINE CONLIKE string #-}
+whitespace :: Grammar ()
+whitespace = () <$ Mat Space
+{-# INLINE CONLIKE whitespace #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+whitespaces :: Grammar ()
+whitespaces = () <$ many whitespace
+{-# INLINE CONLIKE whitespaces #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+whitespaces1 :: Grammar ()
+whitespaces1 = () <$ some whitespace
+{-# INLINE CONLIKE whitespaces1 #-}
 
 -- TODO ------------------------------------------------------------------------
 
@@ -177,36 +205,29 @@ between tml tmr tm = tml *> tm <* tmr
 -- | TODO
 --
 -- @since 1.0.0
-surround :: Grammar x -> Grammar a -> Grammar a
-surround tm = between tm tm
-{-# INLINE CONLIKE surround #-}
-
--- | TODO
---
--- @since 1.0.0
 parentheses :: Grammar a -> Grammar a
-parentheses = between (char '(') (char ')')
+parentheses x = char '(' *> x <* char ')'
 {-# INLINE CONLIKE parentheses #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 brackets :: Grammar a -> Grammar a
-brackets = between (char '[') (char ']')
+brackets x = char '[' *> x <* char ']'
 {-# INLINE CONLIKE brackets #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 braces :: Grammar a -> Grammar a
-braces = between (char '{') (char '}')
+braces x = char '{' *> x <* char '}'
 {-# INLINE CONLIKE braces #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 angles :: Grammar a -> Grammar a
-angles = between (char '<') (char '>')
+angles x = char '<' *> x <* char '>'
 {-# INLINE CONLIKE angles #-}
 
 -- TODO ------------------------------------------------------------------------
@@ -214,6 +235,7 @@ angles = between (char '<') (char '>')
 -- | TODO
 --
 -- @since 1.0.0
-choice :: NonEmpty (Grammar a) -> Grammar a
-choice (tm :| tms) = foldr (<|>) tm tms
+choice :: Foldable f => f (Grammar a) -> Grammar a
+choice = foldr' (<|>) empty
 {-# INLINE CONLIKE choice #-}
+{-# SPECIALIZE INLINE choice :: [Grammar a] -> Grammar a #-}
