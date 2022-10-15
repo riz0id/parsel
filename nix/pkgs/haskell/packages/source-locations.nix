@@ -7,8 +7,8 @@ mkDerivation {
   version = "1.0.0";
   src = fetchgit {
     url = "https://github.com/riz0id/source-locations";
-    sha256 = "0xdkx752vhl6l6fwpq7jswpxrrs2yk4frz823jxmdwccah0g0lhc";
-    rev = "7380664b8a627810c70949bf8741a3e501e59f5c";
+    sha256 = "1ljjihgkz4dyhancsf3gslb5ihyk9pxrm3rh0q34ijj86fqfxnax";
+    rev = "8ce7263b399db3b097170caccb7edb57ab589b47";
     fetchSubmodules = true;
   };
   libraryHaskellDepends = [
