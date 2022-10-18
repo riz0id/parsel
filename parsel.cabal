@@ -85,13 +85,14 @@ library
 
   build-depends:
     , deepseq
+    , emit
     , ghc-prim         >= 0.7.0  && < 0.9
     , mtl
     , primitive
-    , prim-compat      
-    , prim-bool
-    , prim-int
-    , prim-ord
+    -- , prim-compat      
+    -- , prim-bool
+    -- , prim-int
+    -- , prim-ord
     , source-locations
     , template-haskell >= 2.17.0 && < 2.19
     , text
@@ -102,38 +103,41 @@ library
 
   other-modules:
     Data.Vector
+    Text.Parsel.Grammar.Core
     Text.Parsel.Parse
     Text.Parsel.Parse.Core
-    Text.Parsel.Grammar.Core
+    Text.Parsel.Parse.ParseContext
+    Text.Parsel.Parse.ParseState
     Text.Parsel.ParseError
+    Text.Parsel.Pattern
 
-test-suite test
-  import:         common
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is:        Test.hs
+-- test-suite test
+--   import:         common
+--   type:           exitcode-stdio-1.0
+--   hs-source-dirs: test
+--   main-is:        Test.hs
 
-  default-extensions:
-    BlockArguments GADTs ImportQualifiedPost KindSignatures MagicHash 
-    ViewPatterns
+--   default-extensions:
+--     BlockArguments GADTs ImportQualifiedPost KindSignatures MagicHash 
+--     ViewPatterns
 
-  ghc-options:
-    -threaded
-    -rtsopts
-    "-with-rtsopts=-N"
+--   ghc-options:
+--     -threaded
+--     -rtsopts
+--     "-with-rtsopts=-N"
 
-  build-depends:
-    , hedgehog
-    , parsel
-    , tasty
-    , tasty-hedgehog 
-    , text
+--   build-depends:
+--     , hedgehog
+--     , parsel
+--     , tasty
+--     -- , tasty-hedgehog 
+--     , text
 
-  other-modules: 
-    Test.Compat
-    Test.Core
-    Test.Parsel
-    Test.Parsel.Single
+--   other-modules: 
+--     Test.Compat
+--     Test.Core
+--     Test.Parsel
+--     Test.Parsel.Single
 
 benchmark bench-speed
     import:           common

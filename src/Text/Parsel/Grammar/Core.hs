@@ -13,7 +13,7 @@
 
 module Text.Parsel.Grammar.Core
   ( -- * Grammar
-    Grammar (Bot, Loc, Eps, Chr, Str, Mat, Map, Seq, Alt, Fix),
+    Grammar (Bot, Loc, Eps, Chr, Str, Mat, Lab, Map, Seq, Alt, Fix),
 
     -- * Match
     Match (Match, Lower, Upper, Space, Alpha, Digit),
@@ -59,8 +59,9 @@ data Grammar (a :: Type) :: Type where
   Loc :: Grammar SrcLoc
   Eps :: Grammar ()
   Chr :: {-# UNPACK #-} !Char -> Grammar Char
-  Str :: {-# UNPACK #-} !Int -> {-# UNPACK #-} !Text -> Grammar Text
+  Str :: {-# UNPACK #-} !Text -> Grammar Text
   Mat :: Match -> Grammar Char
+  Lab :: {-# UNPACK #-} !Text -> Grammar a -> Grammar a
   Map :: (a -> b) -> Grammar a -> Grammar b
   Seq :: Grammar a -> Grammar b -> Grammar (a, b)
   Alt :: Grammar a -> Grammar a -> Grammar a
@@ -72,8 +73,9 @@ instance Show (Grammar a) where
   show Loc = "Loc"
   show Eps = "Eps"
   show (Chr chr) = "(Chr " ++ show chr ++ ")"
-  show (Str _ str) = "(Str " ++ show str ++ ")"
+  show (Str str) = "(Str " ++ show str ++ ")"
   show (Mat x) = show x
+  show (Lab s x) = "(Lab " ++ show s ++ " " ++ show x ++ ")"
   show (Map _ x) = "(Map " ++ show x ++ ")"
   show (Seq x y) = "(Seq " ++ show x ++ " " ++ show y ++ ")"
   show (Alt x y) = "(Alt " ++ show x ++ " " ++ show y ++ ")"

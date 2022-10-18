@@ -1,11 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UnboxedTuples #-}
 
 module Main where
 
@@ -80,7 +76,7 @@ bench'parse name parser gen =
     mk'benchmark n = env (gen n) (bench (show n) . nf (run'benchmark n))
 
     run'benchmark :: Int -> Text -> Either ParseError a
-    run'benchmark n input = parse input (parser n)
+    run'benchmark n input = parse (Text.pack name) input (parser n)
 
 std'series :: [Int]
 std'series = [500, 1000, 2000, 4000]
@@ -88,7 +84,7 @@ std'series = [500, 1000, 2000, 4000]
 -- Generators ------------------------------------------------------------------
 
 tileByteArrayIO :: Text -> Int -> IO Text
-tileByteArrayIO text n = pure (Text.replicate n text)
+tileByteArrayIO text n = pure (Text.replicate (quot n (Text.length text)) text)
 {-# INLINE tileByteArrayIO #-}
 
 -- | Like 'Text.replicateChar', but performs the allocation for 'Text' in 'IO'

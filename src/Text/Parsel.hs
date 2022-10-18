@@ -8,13 +8,12 @@ module Text.Parsel
     Grammar,
 
     -- ** Parse Errors
-    ParseError (ParseError, exn'kind, exn'begin, exn'end, exn'source),
+    ParseError (ParseError, exn'kind, exn'span, exn'source),
 
     -- ** Parse Error Info
     ParseErrorInfo (ExnEoF, ExnBot, ExnChr, ExnStr),
 
     -- * TODO
-    parseString,
     parse,
     parseIO,
 
@@ -56,6 +55,7 @@ import Control.Applicative (empty, many, some, (<|>))
 
 import Data.Foldable (foldr')
 import Data.SrcLoc (SrcLoc)
+import Data.Functor (void)
 import Data.SrcLoc qualified as SrcLoc
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -74,20 +74,14 @@ import Text.Parsel.ParseError (ParseError (..), ParseErrorInfo (..))
 -- | TODO
 --
 -- @since 1.0.0
-parseString :: String -> Grammar a -> Either ParseError a
-parseString str p = evalST (Text.pack str) (evalGrammar p)
+parse :: Text -> Text -> Grammar a -> Either ParseError a
+parse label source p = evalST label source (evalGrammar p)
 
 -- | TODO
 --
 -- @since 1.0.0
-parse :: Text -> Grammar a -> Either ParseError a
-parse input p = evalST input (evalGrammar p)
-
--- | TODO
---
--- @since 1.0.0
-parseIO :: Text -> Grammar a -> IO (Either ParseError a)
-parseIO input p = evalIO input (evalGrammar p)
+parseIO :: Text -> Text -> Grammar a -> IO (Either ParseError a)
+parseIO label source p = evalIO label source (evalGrammar p)
 
 -- TODO ------------------------------------------------------------------------
 
@@ -167,7 +161,7 @@ alphaNum = alpha <|> digit
 --
 -- @since 1.0.0
 string :: Text -> Grammar Text
-string text = Str (Text.length text) text
+string = Str 
 {-# INLINE CONLIKE string #-}
 
 -- Whitespace ------------------------------------------------------------------
@@ -176,21 +170,21 @@ string text = Str (Text.length text) text
 --
 -- @since 1.0.0
 whitespace :: Grammar ()
-whitespace = () <$ Mat Space
+whitespace = void (Mat Space)
 {-# INLINE CONLIKE whitespace #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 whitespaces :: Grammar ()
-whitespaces = () <$ many whitespace
+whitespaces = void (many whitespace)
 {-# INLINE CONLIKE whitespaces #-}
 
 -- | TODO
 --
 -- @since 1.0.0
 whitespaces1 :: Grammar ()
-whitespaces1 = () <$ some whitespace
+whitespaces1 = void (some whitespace)
 {-# INLINE CONLIKE whitespaces1 #-}
 
 -- TODO ------------------------------------------------------------------------
