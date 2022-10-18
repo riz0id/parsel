@@ -6,8 +6,8 @@ mkDerivation {
   version = "1.0.0";
   src = fetchgit {
     url = "https://github.com/riz0id/prim-ord";
-    sha256 = "1d1nrvpgbhf6n4vlhfjdfsm839ra0149w9cw7cfzsp61jw1ay5iw";
-    rev = "92bfe3a2b12c5caef28fc4ea398a6de8a6423841";
+    sha256 = "11qr5d51kb5gffji9iplwlwyznk7sp2zw27jiqjlwv86f4gwlwih";
+    rev = "15a775b6d76830e44aea980df82c45dca0bb6104";
     fetchSubmodules = true;
   };
   libraryHaskellDepends = [

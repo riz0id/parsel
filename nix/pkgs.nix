@@ -1,8 +1,6 @@
-{ ghc ? "ghc922" }:
+{ ghc }:
 
-let
-  nixpkgs = import ./nixpkgs.nix { };
-in import nixpkgs {
+import (import ./nixpkgs.nix) {
   config.packageOverrides = pkgs: 
     pkgs.lib.composeManyExtensions [  
       (import extensions/emit.nix {
@@ -11,9 +9,9 @@ in import nixpkgs {
       (import extensions/parsel.nix {
         inherit ghc;
       })
-      (import extensions/parse-lisp.nix {
-        inherit ghc;
-      })
+      # (import extensions/parse-lisp.nix {
+      #   inherit ghc;
+      # })
       (import extensions/prim-compat.nix {
         inherit ghc;
       })
@@ -30,6 +28,9 @@ in import nixpkgs {
         inherit ghc;
       })
       (import extensions/source-locations.nix {
+        inherit ghc;
+      })
+      (import extensions/text.nix {
         inherit ghc;
       })
     ] pkgs pkgs;
