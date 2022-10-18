@@ -33,6 +33,7 @@ module Text.Parsel
 
     -- * Strings
     string,
+    text,
 
     -- * Whitespace
     whitespace,
@@ -58,7 +59,7 @@ import Data.SrcLoc (SrcLoc)
 import Data.Functor (void)
 import Data.SrcLoc qualified as SrcLoc
 import Data.Text (Text)
-import Data.Text qualified as Text
+import Text.Emit.Doc.Prim (makeText)
 
 --------------------------------------------------------------------------------
 
@@ -160,9 +161,16 @@ alphaNum = alpha <|> digit
 -- | TODO
 --
 -- @since 1.0.0
-string :: Text -> Grammar Text
-string = Str 
+string :: String -> Grammar Text
+string x = Str (makeText x)
 {-# INLINE CONLIKE string #-}
+
+-- | TODO
+--
+-- @since 1.0.0
+text :: Text -> Grammar Text
+text = Str 
+{-# INLINE CONLIKE text #-}
 
 -- Whitespace ------------------------------------------------------------------
 

@@ -25,7 +25,7 @@ import Text.Parsel
     parse,
     string,
     upper,
-    whitespace,
+    whitespace, text,
   )
 
 --------------------------------------------------------------------------------
@@ -47,7 +47,11 @@ main =
         (tileByteArrayIO "hello")
     , bench'parse
         "(string ('hello')*)"
-        (\n -> many (string (Text.replicate n "hello")))
+        (\n -> string (mconcat (replicate n "hello")))
+        (tileByteArrayIO "hello")
+    , bench'parse
+        "(text ('hello')*)"
+        (\n -> text (Text.replicate n "hello"))
         (tileByteArrayIO "hello")
     , bench'parse
         "(digit* ' ')*"
@@ -84,7 +88,7 @@ std'series = [500, 1000, 2000, 4000]
 -- Generators ------------------------------------------------------------------
 
 tileByteArrayIO :: Text -> Int -> IO Text
-tileByteArrayIO text n = pure (Text.replicate (quot n (Text.length text)) text)
+tileByteArrayIO x n = pure (Text.replicate (quot n (Text.length x)) x)
 {-# INLINE tileByteArrayIO #-}
 
 -- | Like 'Text.replicateChar', but performs the allocation for 'Text' in 'IO'
