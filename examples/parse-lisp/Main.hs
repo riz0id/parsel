@@ -15,31 +15,30 @@ import Text.Parsel
 
 --------------------------------------------------------------------------------
 
--- data SExp = Symbol String | List [SExp]
+data SExp = Symbol String | List [SExp]
 
--- instance Show SExp where
---   show (Symbol x) = '\'' : x
---   show (List xs) = "(" ++ unwords (map show xs) ++ ")"
+instance Show SExp where
+  show (Symbol x) = '\'' : x
+  show (List xs) = "(" ++ unwords (map show xs) ++ ")"
 
--- sexp :: Grammar SExp
--- sexp = whitespaces *> atom
+sexp :: Grammar SExp
+sexp = whitespaces *> atom
 
--- atom :: Grammar SExp
--- atom = do 
---   x <- symbol <|> list
---   whitespaces
---   pure x
+atom :: Grammar SExp
+atom = (symbol <|> list) <* whitespaces
 
-symbol :: Grammar String
-symbol = some lower
+symbol :: Grammar SExp
+symbol = do 
+  str <- some lower
+  pure (Symbol str)
 
--- list :: Grammar SExp
--- list = do 
---   xs <- parentheses (many atom)
---   pure (List xs)
+list :: Grammar SExp
+list = do 
+  xs <- parens (many atom)
+  pure (List xs)
 
-parseSExp :: Text -> Either ParseError String
-parseSExp src = parse src symbol
+parseSExp :: Text -> Either ParseError SExp
+parseSExp src = parse "s-expression" src sexp
 
 main :: IO ()
 main = do

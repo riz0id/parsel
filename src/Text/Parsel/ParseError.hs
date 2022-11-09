@@ -5,7 +5,7 @@
 
 module Text.Parsel.ParseError
   ( -- * Parse Errors
-    ParseError (ParseError, exn'kind, exn'span, exn'source),
+    ParseError (..),
 
     -- ** Construction
     makeExnEndOfFile,
@@ -63,31 +63,22 @@ data ParseError = ParseError
 -- | TODO
 --
 -- @since 1.0.0
-makeExnEndOfFile :: Text -> SrcLoc -> Text -> ParseError
-makeExnEndOfFile label loc src =
-  let span :: SrcSpan
-      span = SrcSpan.fromSrcLoc loc
-   in ParseError label ExnEoF span src
+makeExnEndOfFile :: Text -> SrcSpan -> Text -> ParseError
+makeExnEndOfFile label = ParseError label ExnEoF
 {-# INLINE CONLIKE makeExnEndOfFile #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-makeExnBottom :: Text -> SrcLoc -> Text -> ParseError
-makeExnBottom label loc src =
-  let span :: SrcSpan
-      span = SrcSpan.fromSrcLoc loc
-   in ParseError label ExnBot span src
+makeExnBottom :: Text -> SrcSpan -> Text -> ParseError
+makeExnBottom label = ParseError label ExnBot 
 {-# INLINE CONLIKE makeExnBottom #-}
 
 -- | TODO
 --
 -- @since 1.0.0
-makeExnChar :: Text -> SrcLoc -> Char -> Text -> ParseError
-makeExnChar label loc chr =
-  let span :: SrcSpan
-      span = SrcSpan.SrcSpan loc (SrcLoc.feed loc chr)
-   in ParseError label (ExnChr chr) span
+makeExnChar :: Text -> SrcSpan -> Char -> Text -> ParseError
+makeExnChar label sp chr = ParseError label (ExnChr chr) sp
 {-# INLINE CONLIKE makeExnChar #-}
 
 -- | TODO
@@ -129,7 +120,7 @@ docParseErrorInfo loc label source info = case info of
       <> "\ESC[1;31m"
       <+> (let actual'chr :: Text
                actual'chr = Text.take 1 (Text.drop (SrcLoc.posn loc) source)
-            in if actual'chr == "\n" 
+            in if actual'chr == "\n"
                  then "newline"
                  else "'" <> Emit.text actual'chr <> "'")
       <+> "\ESC[0m"
@@ -169,7 +160,7 @@ docParseErrorSpan span =
 -- @since 1.0.0
 docParseErrorLoc :: SrcLoc -> Doc a
 docParseErrorLoc loc =
-  let doc'posn = emit (SrcLoc.posn loc) 
+  let doc'posn = emit (SrcLoc.posn loc)
       doc'line = emit (SrcLoc.line loc)
       doc'coln = emit (SrcLoc.coln loc)
    in doc'posn <> ":" <> doc'line <> ":" <> doc'coln

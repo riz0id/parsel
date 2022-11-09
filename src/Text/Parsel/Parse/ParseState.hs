@@ -2,23 +2,31 @@
 
 module Text.Parsel.Parse.ParseState (
   -- * Parse State
-  ParseState (ParseState, state'location, state'offset),
+  ParseState (..),
 
   -- ** Construction
   newParseState,
+
+  -- ** Lenses
+  stwBegin,
+  stwEnd,
+
+  -- ** Basic Operations 
+  diffBytes,
 
   -- ** Modification
   feedParseState,
   feedsParseState,
 ) where
 
-import Data.SrcLoc (SrcLoc)
-import Data.SrcLoc qualified as SrcLoc
+import Control.Lens (Lens', lens)
+
 import Data.Text (Text)
-import Data.Text qualified as Text
-import Data.Text.Internal.Encoding.Utf8 qualified as Text.Utf8
 
 --------------------------------------------------------------------------------
+
+import Text.Parsel.Parse.ParseLoc ( ParseLoc )
+import Text.Parsel.Parse.ParseLoc qualified as ParseLoc 
 
 -- Parse State -----------------------------------------------------------------
 
@@ -26,11 +34,12 @@ import Data.Text.Internal.Encoding.Utf8 qualified as Text.Utf8
 --
 -- @since 1.0.0
 data ParseState = ParseState
-  { state'location :: {-# UNPACK #-} !SrcLoc
+  { state'begin :: {-# UNPACK #-} !ParseLoc
   -- ^ TODO
-  , state'offset :: {-# UNPACK #-} !Int
+  , state'end :: {-# UNPACK #-} !ParseLoc
   -- ^ TODO
   }
+  deriving (Eq, Ord, Show)
 
 -- Parse State - Construction --------------------------------------------------
 
@@ -38,25 +47,48 @@ data ParseState = ParseState
 --
 -- @since 1.0.0
 newParseState :: ParseState
-newParseState = ParseState SrcLoc.empty 0
+newParseState = ParseState ParseLoc.empty ParseLoc.empty 
 {-# INLINE CONLIKE newParseState #-}
 
--- Parse State - Modification --------------------------------------------------
+-- Lenses ----------------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+stwBegin :: Lens' ParseState ParseLoc 
+stwBegin = lens state'begin \st x -> st{state'begin = x}
+
+-- | TODO
+--
+-- @since 1.0.0
+stwEnd :: Lens' ParseState ParseLoc 
+stwEnd = lens state'end \st x -> st{state'end = x}
+
+-- Basic Operations ------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+diffBytes :: ParseState -> Int
+diffBytes stw = 
+  let i0 = ParseLoc.offset (state'begin stw)
+      i1 = ParseLoc.offset (state'end stw)
+   in i1 - i0
+{-# INLINE diffBytes #-}
+
+-- Modification ----------------------------------------------------------------
 
 -- | TODO
 --
 -- @since 1.0.0
 feedParseState :: Char -> ParseState -> ParseState
-feedParseState chr (ParseState loc off) =
-  let loc' = SrcLoc.feed loc chr
-      off' = Text.Utf8.utf8Length chr + off
-   in ParseState loc' off'
+feedParseState chr st = st{state'end = ParseLoc.feed (state'end st) chr}
+  -- let end' = SrcLoc.feed (state'end st) chr
+  --     off' = Text.Utf8.utf8Length chr + state'offset st
+  --  in st {state'end = end', state'offset = off'}
 
 -- | TODO
 --
 -- @since 1.0.0
 feedsParseState :: Text -> ParseState -> ParseState
-feedsParseState text (ParseState loc off) =
-  let loc' = Text.foldl' SrcLoc.feed loc text
-      off' = Text.foldr' ((+) . Text.Utf8.utf8Length) off text
-   in ParseState loc' off'
+feedsParseState text st = st{state'end = ParseLoc.feeds (state'end st) text}

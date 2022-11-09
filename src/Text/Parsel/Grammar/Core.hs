@@ -1,15 +1,11 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Text.Parsel.Grammar.Core
   ( -- * Grammar
@@ -34,22 +30,6 @@ import Data.Text (Text)
 import Language.Haskell.TH.Syntax (Lift)
 
 -- Grammars --------------------------------------------------------------------
-
-mkBot :: Grammar a
-mkBot = Bot
-{-# INLINE CONLIKE [1] mkBot #-}
-
-mkEps :: Grammar ()
-mkEps = Eps
-{-# INLINE CONLIKE [1] mkEps #-}
-
-mkMap :: (a -> b) -> Grammar a -> Grammar b
-mkMap = Map
-{-# INLINE CONLIKE [1] mkMap #-}
-
-mkApp :: Grammar (a -> b) -> Grammar a -> Grammar b
-mkApp a b = mkMap (uncurry ($)) (Seq a b)
-{-# INLINE CONLIKE [1] mkApp #-}
 
 -- | TODO
 --
@@ -84,32 +64,32 @@ instance Show (Grammar a) where
 
 -- | @since 1.0.0
 instance Functor Grammar where
-  fmap f x = mkMap f x
+  fmap = Map
   {-# INLINE CONLIKE fmap #-}
 
-  (<$) x = mkMap (\_ -> x)
+  (<$) x = Map (const x) 
   {-# INLINE CONLIKE (<$) #-}
 
 -- | @since 1.0.0
 instance Applicative Grammar where
-  pure x = mkMap (\_ -> x) mkEps
+  pure x = Map (const x) Eps 
   {-# INLINE CONLIKE pure #-}
 
-  (<*>) = mkApp
+  f <*> x = Map (uncurry ($)) (Seq f x)
   {-# INLINE CONLIKE (<*>) #-}
 
-  liftA2 f x y = mkMap (uncurry f) (Seq x y)
+  liftA2 f x y = Map (uncurry f) (Seq x y)
   {-# INLINE CONLIKE liftA2 #-}
 
-  x *> y = mkMap snd (Seq x y)
+  x *> y = Map snd (Seq x y)
   {-# INLINE CONLIKE (*>) #-}
 
-  x <* y = mkMap fst (Seq x y)
+  x <* y = Map fst (Seq x y)
   {-# INLINE CONLIKE (<*) #-}
 
 -- | @since 1.0.0
 instance Alternative Grammar where
-  empty = mkBot
+  empty = Bot
   {-# INLINE CONLIKE empty #-}
 
   (<|>) = Alt
@@ -118,7 +98,7 @@ instance Alternative Grammar where
   many x = Fix \xs -> liftA2 (:) x xs <|> pure []
   {-# INLINE CONLIKE many #-}
 
-  some x = Fix \xs -> liftA2 (:) x (xs <|> pure [])
+  some x = liftA2 (:) x (many x)
   {-# INLINE CONLIKE some #-}
 
 --------------------------------------------------------------------------------
@@ -146,3 +126,8 @@ member chr Space = Char.isSpace chr
 member chr Alpha = Char.isAlpha chr
 member chr Digit = Char.isDigit chr
 {-# INLINE member #-}
+
+--------------------------------------------------------------------------------
+
+
+  

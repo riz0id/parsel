@@ -8,8 +8,7 @@ module Test.Core
   )
 where
 
-import Hedgehog (Property, forAll, property, (===))
-import qualified Hedgehog.Gen as Gen
+import Hedgehog (Property, property)
 import Test.Tasty (TestTree, testGroup)
 
 import Test.Compat (testProp)

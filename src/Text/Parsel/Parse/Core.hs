@@ -6,13 +6,20 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 
-module Text.Parsel.Parse.Core
-  ( -- * Parse Monad
-    ParseIO,
-    Parse (Parse, unParse),
-    runPrimParse,
-  )
-where
+module Text.Parsel.Parse.Core (
+  -- * Operations 
+  parseSourceText,
+  getSourceSpan,
+
+  -- * Parse Monad
+  ParseIO,
+  Parse (Parse, unParse),
+  runPrimParse,
+
+  module Text.Parsel.ParseError,
+  module Text.Parsel.Parse.ParseContext,
+  module Text.Parsel.Parse.ParseState,
+) where
 
 import Control.Applicative (Alternative, empty, (<|>))
 
@@ -20,21 +27,44 @@ import Control.Monad.Except (MonadError, catchError, throwError)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, primitive)
 import Control.Monad.Reader (MonadReader, ask, local)
-import Control.Monad.State (MonadState, get, put, state)
+import Control.Monad.State (MonadState, get, put, state, gets)
 
 import Data.Kind (Type)
+import Data.Text (Text)
+import Data.Text.Internal qualified as Text
 
 import GHC.Exts (State#)
 import GHC.IO (IO (IO))
 
 --------------------------------------------------------------------------------
 
-import Text.Parsel.Parse.ParseContext (ParseContext (context'label))
-import Text.Parsel.Parse.ParseState (ParseState (state'location))
-import Text.Parsel.ParseError (ParseError, makeExnBottom)
-import Text.Parsel.Parse.ParseContext (context'source)
+import Text.Parsel.Parse.ParseContext
+import Text.Parsel.Parse.ParseState
+import Text.Parsel.ParseError 
+import Data.SrcSpan (SrcSpan(..))
+import qualified Text.Parsel.Parse.ParseLoc as ParseLoc
 
--- Parse Monad ------------------------------------------------------------------
+-- Operations ------------------------------------------------------------------
+
+-- | TODO
+--
+-- @since 1.0.0
+parseSourceText :: Parse s Text 
+parseSourceText = 
+  Parse \ctx env st# ->
+    let !off = ParseLoc.offset (state'begin env)
+        !len = diffBytes env
+        !src = Text.text (context'buffer ctx) off len
+     in (# st#, env, (# | src #) #)
+
+getSourceSpan :: Parse s SrcSpan
+getSourceSpan = do 
+  loc0 <- gets (ParseLoc.srcloc . state'begin)
+  loc1 <- gets (ParseLoc.srcloc . state'end)
+  pure (SrcSpan loc0 loc1)
+{-# INLINE getSourceSpan #-}
+
+-- Parse Monad -----------------------------------------------------------------
 
 -- | TODO
 --
@@ -65,7 +95,7 @@ newtype Parse s a = Parse
       ParseContext ->
       ParseState ->
       State# s ->
-      (# State# s, ParseState, (# ParseError| a #) #)
+      (# State# s, ParseState, (# ParseError | a #) #)
   }
 
 -- | @since 1.0.0
@@ -82,7 +112,7 @@ instance Applicative (Parse s) where
   {-# INLINE pure #-}
 
   Parse f <*> Parse g =
-    Parse \ctx env0 st0# -> case f ctx  env0 st0# of
+    Parse \ctx env0 st0# -> case f ctx env0 st0# of
       (# st1#, env1, (# e | #) #) -> (# st1#, env1, (# e | #) #)
       (# st1#, env1, (# | k #) #) -> case g ctx env1 st1# of
         (# st2#, env2, (# e | #) #) -> (# st2#, env2, (# e | #) #)
@@ -91,14 +121,16 @@ instance Applicative (Parse s) where
 
 -- | @since 1.0.0
 instance Alternative (Parse s) where
-  empty =
+  empty = do 
+    sp <- getSourceSpan
     Parse \ctx env st# ->
       let !lab = context'label ctx
-          !src = context'source ctx
-          !loc = state'location env
-       in (# st#, env, (# makeExnBottom lab loc src | #) #)
+          !off = ParseLoc.offset (state'begin env)
+          !len = diffBytes env
+          !src = Text.text (context'buffer ctx) off len
+       in (# st#, env, (# makeExnBottom lab sp src | #) #)
   {-# INLINE empty #-}
-
+  
   Parse f <|> Parse g =
     Parse \ctx env0 st0# -> case f ctx env0 st0# of
       (# st1#, _, (# _ | #) #) -> g ctx env0 st1#

@@ -1,17 +1,20 @@
+module Text.Parsel.Parse.ParseContext (
+  ParseContext (
+    ParseContext,
+    context'label,
+    context'buffer,
+    context'length
+  ),
 
-module Text.Parsel.Parse.ParseContext
-  ( ParseContext (ParseContext, context'label, context'source, context'length),
+  -- * Construction
+  newParseContext,
 
-    -- * Construction
-    newParseContext,
+  -- * Modification
+  relabelParseContext,
+) where
 
-    -- * Modification
-    relabelParseContext,
-  )
-where
-
-import Data.Text (Text)
-import Data.Text qualified as Text
+import Data.Text.Internal (Text (Text))
+import Data.Text.Array (Array)
 
 --------------------------------------------------------------------------------
 
@@ -21,7 +24,7 @@ import Data.Text qualified as Text
 data ParseContext = ParseContext
   { context'label :: {-# UNPACK #-} !Text
   -- ^ TODO
-  , context'source :: {-# UNPACK #-} !Text
+  , context'buffer :: {-# UNPACK #-} !Array
   -- ^ TODO
   , context'length :: {-# UNPACK #-} !Int
   -- ^ TODO
@@ -33,7 +36,7 @@ data ParseContext = ParseContext
 --
 -- @since 1.0.0
 newParseContext :: Text -> Text -> ParseContext
-newParseContext label source = ParseContext label source (Text.length source)
+newParseContext label (Text source _ len) = ParseContext label source len
 {-# INLINE CONLIKE newParseContext #-}
 
 -- Parse Context - Modification ------------------------------------------------

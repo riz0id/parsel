@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Test.Parsel.Single
   ( testTree,
   )
@@ -24,8 +26,8 @@ testTree :: TestTree
 testTree =
   testGroup
     "Single"
-    [ testProp "char c" propSingle 
-    , testProp "many (char c)" propManySingle
+    [ testProp "char" propSingle 
+    , testProp "many char" propManySingle
     ]
 
 propSingle :: Property
@@ -33,7 +35,7 @@ propSingle = property do
   chr <- forAll Gen.unicode
   let source :: Text
       source = Text.singleton chr
-   in parse source (char chr) === Right chr
+   in parse "char" source (char chr) === Right chr
 
 propManySingle :: Property
 propManySingle = property do
@@ -41,4 +43,4 @@ propManySingle = property do
   len <- forAll (Gen.int $ Range.linear 0 100)
   let source :: Text
       source = Text.replicate len (Text.pack [chr])
-   in parse source (many (char chr)) === Right (replicate len chr)
+   in parse "many char" source (many (char chr)) === Right (replicate len chr)
