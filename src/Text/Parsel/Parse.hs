@@ -101,11 +101,9 @@ evalGrammar (Seq x y) = liftA2 (,) (evalGrammar x) (evalGrammar y)
 evalGrammar (Alt x y) = evalGrammar x <|> evalGrammar y
 evalGrammar (Fix f) = do 
   loc0 <- fmap SrcSpan.begin getSourceSpan
-  lab <- asks context'label
   catchError (evalGrammar (f (Fix f))) \exn -> do 
-    loc1 <- fmap SrcSpan.end getSourceSpan
-    let sp = SrcSpan.SrcSpan loc0 loc1
-    throwError exn {exn'label = lab, exn'span = sp}
+    let sp = SrcSpan.SrcSpan loc0 (SrcSpan.end (exn'span exn))
+    throwError exn {exn'span = sp}
 {-# INLINE evalGrammar #-}
 
 -- Errors ----------------------------------------------------------------------
